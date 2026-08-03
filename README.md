@@ -335,46 +335,85 @@ Profiling is driven by questions, not by collecting every available metric.
 
 ---
 
+## Current Development Setup
+
+KernelVision currently supports its Milestone 0 package and environment-reporting
+interface. Use Python 3.11 for local development:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+kernelvision --help
+kernelvision environment
+```
+
+The local Apple Silicon environment is used for package development and
+dependency-free tests. GPU implementation, correctness checks, profiling, and
+benchmarks will run on a Modal-hosted NVIDIA L4. Future benchmark reports will
+record the exact container, CUDA, PyTorch, and GPU configuration.
+
 ## Example Commands
 
 These commands are placeholders and will be updated as the implementation lands.
 
 ### Install
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
+The current installation instructions are documented in
+[Current Development Setup](#current-development-setup). Additional ML
+dependencies will be introduced with the baseline inference milestone.
 
 ### Run Image Inference
 
 ```bash
-python -m kernelvision.cli \
-  --model path/to/model.pt \
-  --image assets/sample_images/example.jpg \
-  --device cuda \
+kernelvision image \
+  --model yolov8n.pt \
+  --image path/to/example.jpg \
+  --device cpu \
   --img-size 640 \
   --conf 0.25 \
   --output results/example_annotated.jpg
 ```
 
+Use `--device 0` for the first CUDA GPU in the future Modal L4 environment.
+Local CPU runs validate behavior only and are not benchmark results.
+
 ### Run Video Inference
 
 ```bash
-python scripts/run_video.py \
-  --model path/to/model.pt \
+kernelvision video \
+  --model yolov8n.pt \
   --input assets/sample_videos/example.mp4 \
   --output results/example_annotated.mp4 \
-  --device cuda
+  --device cpu \
+  --conf 0.25 \
+  --img-size 640
 ```
 
 ### Benchmark
 
 ```bash
-python scripts/benchmark_pipeline.py \
-  --config configs/baseline.yaml
+kernelvision benchmark \
+  --model yolov8n.pt \
+  --image path/to/example.jpg \
+  --device cpu \
+  --warmup 30 \
+  --iterations 200 \
+  --json-out results/local_report.json \
+  --csv-out benchmarks/raw/local_samples.csv
 ```
+
+Local CPU benchmarks validate the harness but are not published performance
+results. Run the reproducible GPU baseline through Modal:
+
+```bash
+modal run scripts/modal_benchmark.py \
+  --warmup 30 \
+  --iterations 200
+```
+
+See [Benchmark Methodology](docs/benchmark_methodology.md) and
+[Modal NVIDIA L4 Execution](docs/modal_l4.md) for timing boundaries and setup.
 
 ### Run Tests
 
@@ -392,12 +431,23 @@ Planned summary format:
 
 | Pipeline | Preprocess | Inference | Postprocess | End-to-end | FPS |
 |---|---:|---:|---:|---:|---:|
-| PyTorch FP32 | TBD | TBD | TBD | TBD | TBD |
+| PyTorch FP32 | 2.247 ms | 7.431 ms | 1.341 ms | 18.497 ms | 53.469 |
 | PyTorch FP16 | TBD | TBD | TBD | TBD | TBD |
 | Triton preprocessing | TBD | TBD | TBD | TBD | TBD |
 | CUDA preprocessing | TBD | TBD | TBD | TBD | TBD |
 | TensorRT FP16 | TBD | TBD | TBD | TBD | TBD |
 | Fully optimized | TBD | TBD | TBD | TBD | TBD |
+
+The PyTorch FP32 row is the Milestone 2 Modal NVIDIA L4 baseline. Latencies are
+medians; FPS is derived from mean end-to-end latency. The run used YOLOv8n,
+batch size 1, a 640 × 640 model input, 30 warm-up iterations, and 200 measured
+iterations. End-to-end timing includes image decode, the synchronized backend
+call, and in-memory visualization; output-file writing is excluded.
+
+- End-to-end P95: 20.380 ms
+- Peak allocated GPU memory: 27.812 MB
+- Raw/report data: [`benchmarks/raw/modal_l4_baseline.csv`](benchmarks/raw/modal_l4_baseline.csv)
+  and [`results/modal_l4_baseline.json`](results/modal_l4_baseline.json)
 
 Each published result will include:
 
