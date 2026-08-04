@@ -15,6 +15,7 @@ from kernelvision.benchmarking.report import (
     build_report,
 )
 from kernelvision.benchmarking.timers import synchronize_device
+from kernelvision.config import Precision, validate_precision
 from kernelvision.environment import collect_environment
 
 
@@ -27,6 +28,7 @@ class ImageBenchmarkConfig:
     device: str = "cpu"
     confidence: float = 0.25
     image_size: int = 640
+    precision: Precision = "fp32"
     warmup_iterations: int = 30
     measured_iterations: int = 200
 
@@ -39,6 +41,7 @@ class ImageBenchmarkConfig:
             raise ValueError("confidence must be between 0.0 and 1.0")
         if self.image_size <= 0:
             raise ValueError("image_size must be greater than zero")
+        validate_precision(self.precision)
         if self.warmup_iterations < 0:
             raise ValueError("warmup_iterations cannot be negative")
         if self.measured_iterations <= 0:
@@ -124,6 +127,7 @@ def run_image_benchmark(
             confidence=config.confidence,
             image_size=config.image_size,
             device=config.device,
+            precision=config.precision,
         )
         warmup_result.plot()
     synchronize_device(config.device)
@@ -147,6 +151,7 @@ def run_image_benchmark(
             confidence=config.confidence,
             image_size=config.image_size,
             device=config.device,
+            precision=config.precision,
         )
         synchronize_device(config.device)
         backend_ms = _elapsed_ms(backend_start)
@@ -182,7 +187,7 @@ def run_image_benchmark(
         "source_shape_hwc": list(validation_frame.shape),
         "model_input_size": config.image_size,
         "batch_size": 1,
-        "dtype": "float32",
+        "dtype": config.precision,
         "device": config.device,
         "confidence": config.confidence,
         "warmup_iterations": config.warmup_iterations,

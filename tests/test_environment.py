@@ -12,6 +12,8 @@ def test_collect_environment_includes_required_fields() -> None:
         "Architecture",
         "Python",
         "PyTorch",
+        "NumPy",
+        "OpenCV",
         "CUDA available",
         "GPU",
     }

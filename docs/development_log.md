@@ -102,3 +102,47 @@
 - End-to-end coefficient of variation: 4.87%.
 - Saved 200 raw samples to `benchmarks/raw/modal_l4_baseline.csv` and the full
   report to `results/modal_l4_baseline.json`.
+
+## 2026-08-04 — Milestone 3 FP32 versus FP16
+
+### Completed
+
+- Added explicit `fp32` and `fp16` precision configuration across the CLI,
+  image/video pipeline, benchmark runner, and Ultralytics backend.
+- Mapped FP32 to Ultralytics `quantize=32` and FP16 to `quantize=16`.
+- Implemented box IoU and greedy one-to-one same-class detection matching.
+- Added conversion from Ultralytics tensors into device-independent detection
+  records and JSON comparison summaries.
+- Added Modal L4 correctness and order-reversed paired performance workflows.
+- Extended environment reports with NumPy and OpenCV versions.
+- `pytest -q` passes 33 tests locally.
+
+### Correctness result
+
+- YOLOv8n produced six FP32 and six FP16 detections on `bus.jpg`.
+- All six detections matched; there were no unmatched outputs.
+- Mean matched IoU: 0.998210; minimum matched IoU: 0.997358.
+- Maximum coordinate difference: 0.467 px.
+- Maximum confidence difference: 0.000737.
+- This is single-image numerical consistency evidence, not dataset-wide mAP.
+
+### Paired Modal L4 performance result
+
+- Used one pinned container with PyTorch 2.13.0, CUDA 13.0, Ultralytics
+  8.4.115, NumPy 2.4.6, and OpenCV 5.0.0.93.
+- Ran 30 warm-ups and 200 measured iterations for each precision in both
+  FP32→FP16 and FP16→FP32 order.
+- FP16 inference median improved by 0.63% and 3.74% across the two trials.
+- FP16 end-to-end median improved by 6.61% and 7.30%.
+- Mean-based throughput improved by 5.27% and 6.32%.
+- Peak allocated GPU memory fell from 27.812 MB to 13.981 MB, a 49.73%
+  reduction.
+
+### Benchmarking lesson
+
+The original Milestone 2 FP32 report was collected a day earlier and did not
+record all CPU-side dependency versions. Comparing it directly with the first
+FP16 run incorrectly suggested a much larger speedup. Regenerating the control
+and then running both precisions in one order-reversed container showed that
+the model-only FP16 gain is real but modest. Historical Milestone 2 results
+remain preserved as the original baseline rather than being silently replaced.

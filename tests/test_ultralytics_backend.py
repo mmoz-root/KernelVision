@@ -36,6 +36,7 @@ def test_predict_forwards_settings_and_returns_one_result() -> None:
         confidence=0.35,
         image_size=640,
         device="cpu",
+        precision="fp16",
     )
 
     assert result is expected_result
@@ -44,6 +45,7 @@ def test_predict_forwards_settings_and_returns_one_result() -> None:
         "conf": 0.35,
         "imgsz": 640,
         "device": "cpu",
+        "quantize": 16,
         "verbose": False,
     }
 
@@ -57,4 +59,20 @@ def test_predict_rejects_an_unexpected_result_count() -> None:
             confidence=0.25,
             image_size=640,
             device="cpu",
+            precision="fp32",
         )
+
+
+def test_predict_maps_fp32_to_explicit_32_bit_quantization() -> None:
+    model = FakeModel([object()])
+    backend = _backend_with_model(model)
+
+    backend.predict(
+        Path("input.jpg"),
+        confidence=0.25,
+        image_size=640,
+        device="cpu",
+        precision="fp32",
+    )
+
+    assert model.predict_kwargs["quantize"] == 32

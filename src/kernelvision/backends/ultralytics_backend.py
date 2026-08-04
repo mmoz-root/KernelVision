@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from kernelvision.config import Precision
+
 
 class UltralyticsBackend:
     """Load and run an Ultralytics YOLO detector."""
@@ -27,8 +29,10 @@ class UltralyticsBackend:
         confidence: float,
         image_size: int,
         device: str,
+        precision: Precision,
     ) -> Any:
         """Run detection for one image and return its Ultralytics result."""
+        quantize = 16 if precision == "fp16" else 32
         if isinstance(image, Path):
             source = str(image)
         else:
@@ -38,6 +42,7 @@ class UltralyticsBackend:
             conf=confidence,
             imgsz=image_size,
             device=device,
+            quantize=quantize,
             verbose=False,
         )
 

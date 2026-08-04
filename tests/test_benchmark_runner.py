@@ -43,6 +43,7 @@ def test_runner_warms_up_and_records_each_measured_iteration(
         device="cpu",
         confidence=0.4,
         image_size=320,
+        precision="fp16",
         warmup_iterations=2,
         measured_iterations=3,
     )
@@ -55,5 +56,7 @@ def test_runner_warms_up_and_records_each_measured_iteration(
     assert report.summary_ms["end_to_end_ms"]["count"] == 3
     assert report.metadata["warmup_iterations"] == 2
     assert report.metadata["measured_iterations"] == 3
+    assert report.metadata["dtype"] == "fp16"
+    assert all(call["precision"] == "fp16" for call in backend.calls)
     assert report.metadata["host_to_device_timing"].startswith("included")
     assert report.throughput_fps > 0

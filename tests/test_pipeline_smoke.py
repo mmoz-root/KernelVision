@@ -37,12 +37,14 @@ class FakeBackend:
         confidence: float,
         image_size: int,
         device: str,
+        precision: str,
     ) -> FakeResult:
         self.request = {
             "image": image,
             "confidence": confidence,
             "image_size": image_size,
             "device": device,
+            "precision": precision,
         }
         self.requests.append(self.request)
         return FakeResult()
@@ -111,6 +113,7 @@ def test_image_pipeline_saves_output_without_a_real_model(tmp_path: Path) -> Non
         "confidence": 0.4,
         "image_size": 320,
         "device": "cpu",
+        "precision": "fp32",
     }
 
 

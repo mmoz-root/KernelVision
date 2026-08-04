@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from kernelvision.backends import UltralyticsBackend
-from kernelvision.config import ImageInferenceConfig, VideoInferenceConfig
+from kernelvision.config import ImageInferenceConfig, Precision, VideoInferenceConfig
 
 
 class DetectionResult(Protocol):
@@ -28,6 +28,7 @@ class ImageBackend(Protocol):
         confidence: float,
         image_size: int,
         device: str,
+        precision: Precision,
     ) -> DetectionResult:
         """Run object detection for one image."""
         ...
@@ -57,6 +58,7 @@ def run_image_inference(
         confidence=config.confidence,
         image_size=config.image_size,
         device=config.device,
+        precision=config.precision,
     )
     result.save(filename=str(config.output))
 
@@ -118,6 +120,7 @@ def run_video_inference(
                 confidence=config.confidence,
                 image_size=config.image_size,
                 device=config.device,
+                precision=config.precision,
             )
             writer.write(result.plot())
             frame_count += 1

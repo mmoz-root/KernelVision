@@ -65,6 +65,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="square model input size in pixels (default: 640)",
     )
     image_parser.add_argument(
+        "--precision",
+        choices=("fp32", "fp16"),
+        default="fp32",
+        help="model compute precision (default: fp32)",
+    )
+    image_parser.add_argument(
         "--output",
         required=True,
         type=Path,
@@ -106,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="square model input size in pixels (default: 640)",
     )
     video_parser.add_argument(
+        "--precision",
+        choices=("fp32", "fp16"),
+        default="fp32",
+        help="model compute precision (default: fp32)",
+    )
+    video_parser.add_argument(
         "--output",
         required=True,
         type=Path,
@@ -144,6 +156,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=640,
         type=int,
         help="square model input size in pixels (default: 640)",
+    )
+    benchmark_parser.add_argument(
+        "--precision",
+        choices=("fp32", "fp16"),
+        default="fp32",
+        help="model compute precision (default: fp32)",
     )
     benchmark_parser.add_argument(
         "--warmup",
@@ -190,6 +208,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 device=args.device,
                 confidence=args.confidence,
                 image_size=args.image_size,
+                precision=args.precision,
             )
             output = run_image_inference(config)
         except (FileNotFoundError, RuntimeError, ValueError) as error:
@@ -204,6 +223,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 device=args.device,
                 confidence=args.confidence,
                 image_size=args.image_size,
+                precision=args.precision,
             )
             summary = run_video_inference(config)
         except (FileNotFoundError, RuntimeError, ValueError) as error:
@@ -220,6 +240,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 device=args.device,
                 confidence=args.confidence,
                 image_size=args.image_size,
+                precision=args.precision,
                 warmup_iterations=args.warmup_iterations,
                 measured_iterations=args.measured_iterations,
             )

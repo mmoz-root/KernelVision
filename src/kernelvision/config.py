@@ -4,6 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
+
+
+Precision = Literal["fp32", "fp16"]
+
+
+def validate_precision(precision: str) -> None:
+    """Reject precision modes that KernelVision does not benchmark."""
+    if precision not in ("fp32", "fp16"):
+        raise ValueError("precision must be either 'fp32' or 'fp16'")
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +26,7 @@ class ImageInferenceConfig:
     device: str = "cpu"
     confidence: float = 0.25
     image_size: int = 640
+    precision: Precision = "fp32"
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -26,6 +37,7 @@ class ImageInferenceConfig:
             raise ValueError("confidence must be between 0.0 and 1.0")
         if self.image_size <= 0:
             raise ValueError("image_size must be greater than zero")
+        validate_precision(self.precision)
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +50,7 @@ class VideoInferenceConfig:
     device: str = "cpu"
     confidence: float = 0.25
     image_size: int = 640
+    precision: Precision = "fp32"
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -48,3 +61,4 @@ class VideoInferenceConfig:
             raise ValueError("confidence must be between 0.0 and 1.0")
         if self.image_size <= 0:
             raise ValueError("image_size must be greater than zero")
+        validate_precision(self.precision)

@@ -16,7 +16,7 @@ SOURCE_DIR = PROJECT_ROOT / "src"
 runtime_image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("libgl1", "libglib2.0-0")
-    .uv_pip_install("ultralytics>=8.3,<9")
+    .uv_pip_install("ultralytics==8.4.115")
     .env(
         {
             "PYTHONPATH": "/root/src",
@@ -35,6 +35,7 @@ app = modal.App("kernelvision-benchmark")
 def benchmark_l4(
     model: str,
     image_asset: str,
+    precision: str,
     warmup_iterations: int,
     measured_iterations: int,
 ) -> dict[str, Any]:
@@ -53,6 +54,7 @@ def benchmark_l4(
         device="0",
         confidence=0.25,
         image_size=640,
+        precision=precision,
         warmup_iterations=warmup_iterations,
         measured_iterations=measured_iterations,
     )
@@ -84,13 +86,14 @@ def _save_remote_report(
 def main(
     model: str = "yolov8n.pt",
     image_asset: str = "bus.jpg",
+    precision: str = "fp32",
     warmup: int = 30,
     iterations: int = 200,
     json_out: str = "results/modal_l4_baseline.json",
     csv_out: str = "benchmarks/raw/modal_l4_baseline.csv",
 ) -> None:
     """Launch the L4 benchmark and persist its report on the local machine."""
-    report = benchmark_l4.remote(model, image_asset, warmup, iterations)
+    report = benchmark_l4.remote(model, image_asset, precision, warmup, iterations)
     json_output = Path(json_out)
     csv_output = Path(csv_out)
     _save_remote_report(report, json_output, csv_output)

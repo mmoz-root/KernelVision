@@ -23,6 +23,8 @@ def collect_environment() -> dict[str, str]:
         "PyTorch": _package_version("torch"),
         "Torchvision": _package_version("torchvision"),
         "Ultralytics": _package_version("ultralytics"),
+        "NumPy": _package_version("numpy"),
+        "OpenCV": _package_version("opencv-python"),
     }
 
     if info["PyTorch"] == "not installed":
@@ -56,4 +58,3 @@ def collect_environment() -> dict[str, str]:
 def format_environment(info: dict[str, str]) -> str:
     """Format environment information for terminal output."""
     return "\n".join(f"{label}: {value}" for label, value in info.items())
-

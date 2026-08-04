@@ -62,3 +62,26 @@ The report records the exact GPU, Python, PyTorch, CUDA, Torchvision,
 Ultralytics, input shape, model input size, batch size, precision, and timing
 boundaries.
 
+## FP32 versus FP16 experiment
+
+Precision comparisons use `quantize=32` and `quantize=16` in Ultralytics
+8.4.115. Separate model backend instances are required because Ultralytics
+initializes its prediction backend precision on first use.
+
+Correctness is checked before performance. FP32 detections are matched
+one-to-one with FP16 detections of the same class, selecting candidate pairs
+from highest to lowest IoU. The report records detection and match counts,
+unmatched counts, mean and minimum matched IoU, maximum coordinate difference,
+and maximum confidence difference.
+
+The final performance comparison runs both precisions in one Modal L4
+container. Each precision receives 30 warm-up and 200 measured iterations.
+Two trials reverse execution order—FP32 then FP16, followed by FP16 then
+FP32—to reveal simple order effects. All four reports retain their 200 raw
+samples.
+
+Model-only inference changes are the clearest evidence of precision effects.
+End-to-end measurements additionally include image decode, preprocessing,
+postprocessing, visualization, and normal CPU/runtime variation. A
+single-image correctness comparison does not replace dataset-wide quality
+evaluation such as mAP.

@@ -18,7 +18,8 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: work in progress. Benchmark numbers will be added only after reproducible measurements.
+> Status: Milestones 0–3 are implemented. FP32 and FP16 correctness and
+> performance results have been collected on a Modal NVIDIA L4.
 
 ---
 
@@ -203,10 +204,10 @@ Report:
 
 ### Milestone 3 — PyTorch FP32 vs FP16
 
-- Correctness comparison
-- Model-only benchmark
-- End-to-end benchmark
-- Memory comparison
+- [x] Correctness comparison
+- [x] Model-only benchmark
+- [x] End-to-end benchmark
+- [x] Memory comparison
 
 ### Milestone 4 — Triton Fused Preprocessing
 
@@ -278,6 +279,40 @@ Primary input size: 640 × 640
 Dtypes: FP32 and FP16
 ```
 
+## Milestone 3 Results — FP32 vs FP16
+
+The final experiment used YOLOv8n, batch size 1, a 640 × 640 model input,
+confidence 0.25, PyTorch 2.13.0, CUDA 13.0, Ultralytics 8.4.115, and one Modal
+NVIDIA L4. Both precisions ran in the same container with 30 warm-up and 200
+measured iterations per run. The order was reversed across two trials:
+FP32→FP16, then FP16→FP32.
+
+| Metric | FP32 | FP16 | Observed FP16 change |
+|---|---:|---:|---:|
+| Inference median, trial 1 | 5.663 ms | 5.627 ms | -0.63% |
+| Inference median, trial 2 | 5.764 ms | 5.548 ms | -3.74% |
+| End-to-end median, trial 1 | 13.814 ms | 12.901 ms | -6.61% |
+| End-to-end median, trial 2 | 13.673 ms | 12.675 ms | -7.30% |
+| Mean-based throughput, trial 1 | 72.231 FPS | 76.040 FPS | +5.27% |
+| Mean-based throughput, trial 2 | 72.959 FPS | 77.569 FPS | +6.32% |
+| Peak allocated GPU memory | 27.812 MB | 13.981 MB | -49.73% |
+
+FP16 consistently improved latency, but its model-only speedup was modest for
+this small batch-size-1 model. The larger end-to-end difference includes
+framework and CPU-stage variation and should not be interpreted as pure GPU
+compute acceleration.
+
+On the `bus.jpg` correctness case, FP32 and FP16 both produced six detections
+and all six matched by class with IoU ≥ 0.5. Mean matched IoU was 0.998210,
+minimum matched IoU was 0.997358, the largest coordinate change was 0.467 px,
+and the largest confidence change was 0.000737. This validates the chosen
+sample, not dataset-wide detection accuracy or mAP.
+
+Reports with raw samples:
+
+- `results/modal_l4_fp32_vs_fp16_correctness.json`
+- `results/modal_l4_fp32_vs_fp16_performance.json`
+
 ---
 
 ## Correctness
@@ -337,8 +372,9 @@ Profiling is driven by questions, not by collecting every available metric.
 
 ## Current Development Setup
 
-KernelVision currently supports its Milestone 0 package and environment-reporting
-interface. Use Python 3.11 for local development:
+KernelVision currently implements the baseline inference pipeline, benchmark
+harness, and FP32/FP16 comparison through Milestone 3. Use Python 3.11 for
+local development:
 
 ```bash
 python3.11 -m venv .venv
@@ -355,8 +391,6 @@ record the exact container, CUDA, PyTorch, and GPU configuration.
 
 ## Example Commands
 
-These commands are placeholders and will be updated as the implementation lands.
-
 ### Install
 
 The current installation instructions are documented in
@@ -370,6 +404,7 @@ kernelvision image \
   --model yolov8n.pt \
   --image path/to/example.jpg \
   --device cpu \
+  --precision fp32 \
   --img-size 640 \
   --conf 0.25 \
   --output results/example_annotated.jpg
@@ -377,6 +412,15 @@ kernelvision image \
 
 Use `--device 0` for the first CUDA GPU in the future Modal L4 environment.
 Local CPU runs validate behavior only and are not benchmark results.
+
+### Reproduce the Modal L4 precision experiments
+
+```bash
+modal run scripts/modal_precision_comparison.py
+modal run scripts/modal_precision_benchmark.py \
+  --warmup 30 \
+  --iterations 200
+```
 
 ### Run Video Inference
 
