@@ -18,8 +18,9 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–3 are implemented. FP32 and FP16 correctness and
-> performance results have been collected on a Modal NVIDIA L4.
+> Status: Milestones 0–4 are implemented. The baseline, FP32/FP16 comparison,
+> and fused Triton preprocessing kernel have been validated and benchmarked on
+> a Modal NVIDIA L4.
 
 ---
 
@@ -211,12 +212,12 @@ Report:
 
 ### Milestone 4 — Triton Fused Preprocessing
 
-- PyTorch reference
-- Triton HWC-to-CHW + normalization + dtype conversion
-- Multiple image sizes
-- Correctness tests
-- Triton parameter experiments
-- PyTorch versus Triton benchmark
+- [x] PyTorch reference
+- [x] Fused BGR-to-RGB, HWC-to-CHW, normalization, and dtype conversion
+- [x] Multiple image sizes
+- [x] FP32 and FP16 correctness tests
+- [x] Triton block-size and warp-count experiments
+- [x] PyTorch versus Triton benchmark
 
 ### Milestone 5 — CUDA Preprocessing
 
@@ -313,6 +314,45 @@ Reports with raw samples:
 - `results/modal_l4_fp32_vs_fp16_correctness.json`
 - `results/modal_l4_fp32_vs_fp16_performance.json`
 
+## Milestone 4 Results — Fused Triton Preprocessing
+
+The fused operation converts one contiguous CUDA `uint8` BGR-HWC image into a
+normalized, contiguous RGB-CHW FP32 or FP16 tensor. Resize, letterbox, batching,
+and host-to-device transfer remain outside this kernel.
+
+The Triton output matched the PyTorch reference exactly in all 10 correctness
+cases: five shapes—including irregular dimensions—times two output dtypes.
+Maximum absolute difference and mismatched-value count were both zero.
+
+CUDA-event microbenchmarks used 30 warm-ups and 200 measured iterations per
+operation on the same Modal NVIDIA L4:
+
+| Input shape | Dtype | PyTorch median | Best Triton median | Speedup |
+|---|---:|---:|---:|---:|
+| 320 × 320 | FP32 | 0.0891 ms | 0.0532 ms | 1.67× |
+| 320 × 320 | FP16 | 0.0901 ms | 0.0553 ms | 1.63× |
+| 384 × 640 | FP32 | 0.0870 ms | 0.0553 ms | 1.57× |
+| 384 × 640 | FP16 | 0.0870 ms | 0.0553 ms | 1.57× |
+| 640 × 640 | FP32 | 0.0860 ms | 0.0543 ms | 1.58× |
+| 640 × 640 | FP16 | 0.0850 ms | 0.0543 ms | 1.57× |
+| 720 × 1280 | FP32 | 0.1388 ms | 0.0543 ms | 2.56× |
+| 720 × 1280 | FP16 | 0.0850 ms | 0.0553 ms | 1.54× |
+
+The kernel is faster because it replaces multiple framework operations with
+one launch and one pass over the data. At the primary 640 × 640 size, however,
+the absolute saving is only about 0.032 ms. Relative microbenchmark speedup
+therefore does not imply a similarly large end-to-end improvement.
+
+Block sizes 128–1024 and warp counts 2, 4, and 8 were tested. Most median
+differences were around one microsecond, so no universal optimum was supported
+by the data. `BLOCK_SIZE=256` and `num_warps=4` remain the stable default.
+
+Detailed methodology and interpretation are in
+[`docs/triton_preprocessing.md`](docs/triton_preprocessing.md). Reports:
+
+- `results/modal_l4_triton_preprocess_correctness.json`
+- `results/modal_l4_triton_preprocess_benchmark.json`
+
 ---
 
 ## Correctness
@@ -373,8 +413,8 @@ Profiling is driven by questions, not by collecting every available metric.
 ## Current Development Setup
 
 KernelVision currently implements the baseline inference pipeline, benchmark
-harness, and FP32/FP16 comparison through Milestone 3. Use Python 3.11 for
-local development:
+harness, FP32/FP16 comparison, and fused Triton preprocessing through
+Milestone 4. Use Python 3.11 for local development:
 
 ```bash
 python3.11 -m venv .venv
@@ -418,6 +458,11 @@ Local CPU runs validate behavior only and are not benchmark results.
 ```bash
 modal run scripts/modal_precision_comparison.py
 modal run scripts/modal_precision_benchmark.py \
+  --warmup 30 \
+  --iterations 200
+
+modal run scripts/modal_triton_preprocessing.py
+modal run scripts/modal_triton_benchmark.py \
   --warmup 30 \
   --iterations 200
 ```

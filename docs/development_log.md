@@ -146,3 +146,45 @@ FP16 run incorrectly suggested a much larger speedup. Regenerating the control
 and then running both precisions in one order-reversed container showed that
 the model-only FP16 gain is real but modest. Historical Milestone 2 results
 remain preserved as the original baseline rather than being silently replaced.
+
+## 2026-08-04 — Milestone 4 fused Triton preprocessing
+
+### Completed
+
+- Defined a model-preparation contract from contiguous CUDA `uint8` BGR-HWC
+  input to normalized RGB-CHW FP32 or FP16 output.
+- Added a validated PyTorch correctness reference.
+- Implemented a one-pixel-per-lane Triton kernel that fuses BGR-to-RGB,
+  HWC-to-CHW, normalization, and dtype conversion.
+- Added a validated Python launch wrapper with configurable block size and warp
+  count.
+- Added Modal L4 correctness and CUDA-event microbenchmark workflows.
+- Added Triton version reporting to reproducibility metadata.
+- `pytest -q` passes 44 portable tests locally.
+
+### Correctness result
+
+- Tested five shapes in FP32 and FP16, including 5×7 and 641×639 boundary-mask
+  cases.
+- All 10 output tensors matched the PyTorch reference.
+- Maximum absolute difference: 0.0.
+- Mismatched values: 0.
+
+### Performance result
+
+- Used 30 warm-ups and 200 CUDA-event measurements per operation.
+- Tested four image shapes, two output dtypes, four block sizes, and three warp
+  counts on a Modal NVIDIA L4.
+- Triton speedups ranged from 1.54× to 2.56× across the eight cases.
+- At 640×640, FP32 improved from 0.0860 ms to 0.0543 ms (1.58×), while FP16
+  improved from 0.0850 ms to approximately 0.054–0.055 ms (about 1.54–1.57×).
+- The absolute 640×640 saving was about 0.032 ms.
+- Parameter differences were generally around one microsecond; no universal
+  best configuration emerged, so 256 elements and four warps remain default.
+
+### Limitation
+
+This is a GPU-only component microbenchmark. Input tensors already reside on
+the GPU, and resize, letterbox, host-to-device transfer, Python wall time, model
+inference, and postprocessing are excluded. Pipeline integration must be
+benchmarked before making end-to-end speed claims.

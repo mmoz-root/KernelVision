@@ -23,6 +23,7 @@ def collect_environment() -> dict[str, str]:
         "PyTorch": _package_version("torch"),
         "Torchvision": _package_version("torchvision"),
         "Ultralytics": _package_version("ultralytics"),
+        "Triton": _package_version("triton"),
         "NumPy": _package_version("numpy"),
         "OpenCV": _package_version("opencv-python"),
     }

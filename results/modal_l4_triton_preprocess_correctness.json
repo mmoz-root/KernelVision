@@ -1,0 +1,137 @@
+{
+  "all_cases_passed": true,
+  "cases": [
+    {
+      "dtype": "fp32",
+      "element_count": 18,
+      "height": 2,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 1e-07,
+      "width": 3
+    },
+    {
+      "dtype": "fp16",
+      "element_count": 18,
+      "height": 2,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 0.0005,
+      "width": 3
+    },
+    {
+      "dtype": "fp32",
+      "element_count": 105,
+      "height": 5,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 1e-07,
+      "width": 7
+    },
+    {
+      "dtype": "fp16",
+      "element_count": 105,
+      "height": 5,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 0.0005,
+      "width": 7
+    },
+    {
+      "dtype": "fp32",
+      "element_count": 737280,
+      "height": 384,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 1e-07,
+      "width": 640
+    },
+    {
+      "dtype": "fp16",
+      "element_count": 737280,
+      "height": 384,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 0.0005,
+      "width": 640
+    },
+    {
+      "dtype": "fp32",
+      "element_count": 1228800,
+      "height": 640,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 1e-07,
+      "width": 640
+    },
+    {
+      "dtype": "fp16",
+      "element_count": 1228800,
+      "height": 640,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 0.0005,
+      "width": 640
+    },
+    {
+      "dtype": "fp32",
+      "element_count": 1228797,
+      "height": 641,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 1e-07,
+      "width": 639
+    },
+    {
+      "dtype": "fp16",
+      "element_count": 1228797,
+      "height": 641,
+      "maximum_absolute_difference": 0.0,
+      "mean_absolute_difference": 0.0,
+      "mismatched_values": 0,
+      "output_contiguous": true,
+      "tolerance": 0.0005,
+      "width": 639
+    }
+  ],
+  "metadata": {
+    "block_size": 256,
+    "environment": {
+      "Architecture": "x86_64",
+      "CUDA available": "True",
+      "CUDA devices": "1",
+      "GPU": "NVIDIA L4",
+      "MPS available": "False",
+      "NumPy": "2.4.6",
+      "OpenCV": "5.0.0.93",
+      "Platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.36",
+      "PyTorch": "2.13.0",
+      "PyTorch CUDA build": "13.0",
+      "Python": "3.11.12",
+      "Torchvision": "0.28.0",
+      "Triton": "3.7.1",
+      "Ultralytics": "8.4.115"
+    },
+    "gpu": "NVIDIA L4",
+    "num_warps": 4,
+    "timestamp_utc": "2026-08-04T16:48:01.465764+00:00"
+  }
+}
