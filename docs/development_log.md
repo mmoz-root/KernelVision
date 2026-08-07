@@ -188,3 +188,34 @@ This is a GPU-only component microbenchmark. Input tensors already reside on
 the GPU, and resize, letterbox, host-to-device transfer, Python wall time, model
 inference, and postprocessing are excluded. Pipeline integration must be
 benchmarked before making end-to-end speed claims.
+
+## 2026-08-05 — Milestone 5 standalone CUDA preprocessing started
+
+### Scope established
+
+- Kept raw CUDA compilation and execution in a standalone executable so the
+  PyTorch C++/CUDA extension boundary remains Milestone 6.
+- Added a file-based deterministic input/output protocol shared with the
+  trusted PyTorch reference.
+- Added Modal NVIDIA L4 compilation and correctness orchestration for the same
+  five shapes and two dtypes used in Milestone 4.
+- Added native CUDA error checking, preallocated device buffers, and CUDA-event
+  sampling plumbing around the naive kernel exercise.
+- Added portable tests for deterministic fixture generation and FP32/FP16 raw
+  output decoding.
+
+### Learning checkpoint
+
+The learner implemented `naive_bgr_hwc_to_rgb_chw()` as one thread per pixel,
+with interleaved BGR loads, normalized planar RGB stores, FP32/FP16 dispatch,
+and a final bounds check.
+
+### Naive CUDA correctness result
+
+- Compiled with CUDA 13.0 and nvcc 13.0.48 on a Modal NVIDIA L4.
+- Passed five shapes in FP32 and FP16: 10/10 cases.
+- Maximum absolute difference: 0.0.
+- Mismatched values: 0.
+- Saved `results/modal_l4_cuda_preprocess_correctness.json`.
+- No benchmark claim has been made; optimization and controlled performance
+  comparison remain unfinished.

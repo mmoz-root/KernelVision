@@ -18,9 +18,9 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–4 are implemented. The baseline, FP32/FP16 comparison,
-> and fused Triton preprocessing kernel have been validated and benchmarked on
-> a Modal NVIDIA L4.
+> Status: Milestones 0–4 are implemented. Milestone 5 now has a standalone
+> naive CUDA preprocessing kernel validated against PyTorch on a Modal L4;
+> optimization and comparative benchmarking remain unfinished.
 
 ---
 
@@ -221,10 +221,11 @@ Report:
 
 ### Milestone 5 — CUDA Preprocessing
 
-- Naive CUDA implementation
-- Optimized CUDA implementation
-- Block-size and memory-access experiments
-- PyTorch versus Triton versus CUDA benchmark
+- [x] Standalone raw-CUDA harness and deterministic correctness protocol
+- [x] Naive CUDA implementation and Modal L4 correctness validation
+- [ ] Optimized CUDA implementation
+- [ ] Block-size and memory-access experiments
+- [ ] PyTorch versus Triton versus CUDA benchmark
 
 ### Milestone 6 — PyTorch CUDA Extension
 
@@ -353,6 +354,16 @@ Detailed methodology and interpretation are in
 - `results/modal_l4_triton_preprocess_correctness.json`
 - `results/modal_l4_triton_preprocess_benchmark.json`
 
+## Milestone 5 Progress — Naive CUDA Preprocessing
+
+The learner-written standalone CUDA kernel compiled with nvcc 13.0.48 and
+matched the PyTorch reference exactly in all 10 shape/dtype cases on a Modal
+NVIDIA L4. This is correctness evidence only; naive CUDA has not yet been
+benchmarked or compared with Triton.
+
+- `docs/cuda_preprocessing.md`
+- `results/modal_l4_cuda_preprocess_correctness.json`
+
 ---
 
 ## Correctness
@@ -465,6 +476,8 @@ modal run scripts/modal_triton_preprocessing.py
 modal run scripts/modal_triton_benchmark.py \
   --warmup 30 \
   --iterations 200
+
+modal run scripts/modal_cuda_preprocessing.py --block-size 256
 ```
 
 ### Run Video Inference
