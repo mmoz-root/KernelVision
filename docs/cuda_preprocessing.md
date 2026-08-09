@@ -107,3 +107,74 @@ reference. This establishes correctness only; the one-event correctness runs
 are not benchmark results.
 
 Report: `results/modal_l4_cuda_preprocess_correctness.json`
+
+## Naive CUDA baseline benchmark
+
+### Methodology
+
+The controlled comparison ran in one Modal NVIDIA L4 environment with PyTorch
+2.13.0, CUDA 13.0, Triton 3.7.1, and nvcc 13.0.48. Each shape/dtype case first
+rechecked Triton and CUDA against the PyTorch reference. All eight cases passed
+with zero mismatched values.
+
+Input and output buffers are resident before timing. H2D, D2H, compilation,
+context creation, subprocess startup, and outer wall time are excluded. Triton
+and CUDA outputs are preallocated; PyTorch retains its normal multi-operation
+reference behavior.
+
+Because these operations are only a few microseconds, every event sample times
+100 repeated launches and divides the interval by 100. Each implementation has
+30 warmups and 200 samples in each of three position-balanced rounds:
+
+```text
+round 1: PyTorch → Triton → naive CUDA
+round 2: Triton → naive CUDA → PyTorch
+round 3: naive CUDA → PyTorch → Triton
+```
+
+This produces 600 samples per implementation/case and 14,400 saved CSV rows.
+Block size 256 is the declared naive CUDA/Triton baseline, with four Triton
+warps. No parameter search contributes to these headline results.
+
+### Results
+
+Combined medians:
+
+| Shape | Dtype | PyTorch | Triton | Naive CUDA | CUDA vs PyTorch | CUDA vs Triton |
+|---|---:|---:|---:|---:|---:|---:|
+| 320×320 | FP32 | 0.05736 ms | 0.02644 ms | 0.00306 ms | 18.73× | 8.64× |
+| 320×320 | FP16 | 0.05919 ms | 0.02646 ms | 0.00284 ms | 20.87× | 9.33× |
+| 384×640 | FP32 | 0.05902 ms | 0.02712 ms | 0.00389 ms | 15.17× | 6.97× |
+| 384×640 | FP16 | 0.05869 ms | 0.02668 ms | 0.00384 ms | 15.28× | 6.95× |
+| 640×640 | FP32 | 0.06169 ms | 0.02642 ms | 0.00557 ms | 11.08× | 4.75× |
+| 640×640 | FP16 | 0.05840 ms | 0.02663 ms | 0.00414 ms | 14.12× | 6.44× |
+| 720×1280 | FP32 | 0.10287 ms | 0.02644 ms | 0.01111 ms | 9.26× | 2.38× |
+| 720×1280 | FP16 | 0.06460 ms | 0.02643 ms | 0.00815 ms | 7.93× | 3.24× |
+
+At 640×640 FP32, naive CUDA saves 0.05612 ms versus PyTorch and 0.02085 ms
+versus Triton. Against an approximately 13 ms detector, even the PyTorch-to-
+CUDA component saving represents only about 0.43% of end-to-end latency before
+integration overhead.
+
+### Interpretation limits
+
+- This is not an end-to-end YOLO result.
+- Native CUDA launches from C++, while Triton and PyTorch dispatch through
+  Python/framework paths. CUDA-event intervals can retain GPU idle gaps caused
+  by those different submission paths; device instructions alone do not
+  explain the full difference.
+- Repeated launches reuse the same input and output buffers. This is a
+  warm-cache steady-state benchmark, not a fresh-frame DRAM-throughput test.
+- The historical Milestone 4 Triton result used an allocating wrapper and one
+  operation per event interval. The current preallocated, amplified Triton
+  result has a different boundary and does not show a kernel optimization.
+- Some sub-microsecond differences between native CUDA rounds are large in
+  percentage terms because the complete native operation is only a few
+  microseconds. Raw per-round samples remain available.
+- The naive result establishes the next optimization control. It does not
+  establish that a more complex CUDA kernel will be faster or worthwhile.
+
+Reports:
+
+- `results/modal_l4_cuda_preprocess_benchmark.json`
+- `benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv`

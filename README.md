@@ -18,9 +18,9 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–4 are implemented. Milestone 5 now has a standalone
-> naive CUDA preprocessing kernel validated against PyTorch on a Modal L4;
-> optimization and comparative benchmarking remain unfinished.
+> Status: Milestones 0–4 are implemented. Milestone 5 now has a validated and
+> benchmarked standalone naive CUDA preprocessing baseline on a Modal L4;
+> block experiments and the optimized CUDA implementation remain unfinished.
 
 ---
 
@@ -223,9 +223,9 @@ Report:
 
 - [x] Standalone raw-CUDA harness and deterministic correctness protocol
 - [x] Naive CUDA implementation and Modal L4 correctness validation
-- [ ] Optimized CUDA implementation
+- [x] Controlled PyTorch versus Triton versus naive CUDA baseline benchmark
 - [ ] Block-size and memory-access experiments
-- [ ] PyTorch versus Triton versus CUDA benchmark
+- [ ] Optimized CUDA implementation and final comparison
 
 ### Milestone 6 — PyTorch CUDA Extension
 
@@ -357,12 +357,24 @@ Detailed methodology and interpretation are in
 ## Milestone 5 Progress — Naive CUDA Preprocessing
 
 The learner-written standalone CUDA kernel compiled with nvcc 13.0.48 and
-matched the PyTorch reference exactly in all 10 shape/dtype cases on a Modal
-NVIDIA L4. This is correctness evidence only; naive CUDA has not yet been
-benchmarked or compared with Triton.
+matched the PyTorch reference exactly across the correctness and benchmark
+matrices on a Modal NVIDIA L4.
+
+The controlled baseline uses preallocated Triton/CUDA outputs, 30 warmups,
+three position-balanced rounds, 200 measured samples per round, and 100
+repeated launches per event interval. At 640×640 FP32, combined medians were
+0.06169 ms for PyTorch, 0.02642 ms for Triton, and 0.00557 ms for standalone
+naive CUDA. The absolute CUDA saving was 0.05612 ms versus PyTorch and 0.02085
+ms versus Triton at this boundary.
+
+This is a warm-cache standalone comparison. Native C++ and Python/framework
+submission paths differ, and the result is not an end-to-end YOLO improvement
+or proof that further CUDA optimization will materially affect the detector.
 
 - `docs/cuda_preprocessing.md`
 - `results/modal_l4_cuda_preprocess_correctness.json`
+- `results/modal_l4_cuda_preprocess_benchmark.json`
+- `benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv`
 
 ---
 
@@ -478,6 +490,12 @@ modal run scripts/modal_triton_benchmark.py \
   --iterations 200
 
 modal run scripts/modal_cuda_preprocessing.py --block-size 256
+modal run scripts/modal_cuda_benchmark.py \
+  --warmup 30 \
+  --iterations 200 \
+  --launches-per-sample 100 \
+  --block-size 256 \
+  --num-warps 4
 ```
 
 ### Run Video Inference

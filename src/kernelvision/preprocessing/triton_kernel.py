@@ -75,14 +75,8 @@ else:
     _bgr_hwc_to_rgb_chw_kernel = None
 
 
-def triton_preprocess(
-    image: Any,
-    *,
-    output_dtype: Any,
-    block_size: int = 256,
-    num_warps: int = 4,
-) -> Any:
-    """Launch fused BGR-HWC to normalized RGB-CHW preprocessing."""
+def _load_torch() -> Any:
+    """Import PyTorch lazily so portable package imports still work."""
     try:
         import torch
     except ModuleNotFoundError as error:
@@ -90,7 +84,18 @@ def triton_preprocess(
             "PyTorch is required for Triton preprocessing. "
             "Install KernelVision with the 'inference' extra."
         ) from error
+    return torch
 
+
+def _validate_triton_launch(
+    image: Any,
+    *,
+    output_dtype: Any,
+    block_size: int,
+    num_warps: int,
+    torch: Any,
+) -> None:
+    """Validate properties shared by allocating and preallocated launches."""
     if not isinstance(image, torch.Tensor):
         raise TypeError("image must be a torch.Tensor")
     if image.ndim != 3 or image.shape[-1] != 3:
@@ -110,13 +115,17 @@ def triton_preprocess(
     if triton is None or _bgr_hwc_to_rgb_chw_kernel is None:
         raise RuntimeError("Triton is not installed in this environment")
 
+
+def _launch_triton_into(
+    image: Any,
+    output: Any,
+    *,
+    block_size: int,
+    num_warps: int,
+) -> Any:
+    """Launch the Triton kernel into an already validated output tensor."""
     height, width, _ = image.shape
     pixel_count = height * width
-    output = torch.empty(
-        (3, height, width),
-        dtype=output_dtype,
-        device=image.device,
-    )
     grid = (triton.cdiv(pixel_count, block_size),)
     _bgr_hwc_to_rgb_chw_kernel[grid](
         image,
@@ -126,3 +135,66 @@ def triton_preprocess(
         num_warps=num_warps,
     )
     return output
+
+
+def triton_preprocess(
+    image: Any,
+    *,
+    output_dtype: Any,
+    block_size: int = 256,
+    num_warps: int = 4,
+) -> Any:
+    """Allocate output and launch fused RGB-CHW preprocessing."""
+    torch = _load_torch()
+    _validate_triton_launch(
+        image,
+        output_dtype=output_dtype,
+        block_size=block_size,
+        num_warps=num_warps,
+        torch=torch,
+    )
+    height, width, _ = image.shape
+    output = torch.empty(
+        (3, height, width),
+        dtype=output_dtype,
+        device=image.device,
+    )
+    return _launch_triton_into(
+        image,
+        output,
+        block_size=block_size,
+        num_warps=num_warps,
+    )
+
+
+def triton_preprocess_into(
+    image: Any,
+    output: Any,
+    *,
+    block_size: int = 256,
+    num_warps: int = 4,
+) -> Any:
+    """Launch fused preprocessing into a preallocated output tensor."""
+    torch = _load_torch()
+    if not isinstance(output, torch.Tensor):
+        raise TypeError("output must be a torch.Tensor")
+    _validate_triton_launch(
+        image,
+        output_dtype=output.dtype,
+        block_size=block_size,
+        num_warps=num_warps,
+        torch=torch,
+    )
+    height, width, _ = image.shape
+    if output.shape != (3, height, width):
+        raise ValueError("output must have CHW shape [3, height, width]")
+    if output.device != image.device:
+        raise ValueError("output must be on the same CUDA device as image")
+    if not output.is_contiguous():
+        raise ValueError("output must be contiguous")
+    return _launch_triton_into(
+        image,
+        output,
+        block_size=block_size,
+        num_warps=num_warps,
+    )

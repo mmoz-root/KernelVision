@@ -5,11 +5,15 @@ from kernelvision.preprocessing.cuda_standalone import (
     read_standalone_output,
 )
 from kernelvision.preprocessing.reference import torch_reference_preprocess
-from kernelvision.preprocessing.triton_kernel import triton_preprocess
+from kernelvision.preprocessing.triton_kernel import (
+    triton_preprocess,
+    triton_preprocess_into,
+)
 
 __all__ = [
     "deterministic_bgr_image",
     "read_standalone_output",
     "torch_reference_preprocess",
     "triton_preprocess",
+    "triton_preprocess_into",
 ]

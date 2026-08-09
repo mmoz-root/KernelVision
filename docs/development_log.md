@@ -217,5 +217,28 @@ and a final bounds check.
 - Maximum absolute difference: 0.0.
 - Mismatched values: 0.
 - Saved `results/modal_l4_cuda_preprocess_correctness.json`.
-- No benchmark claim has been made; optimization and controlled performance
-  comparison remain unfinished.
+- Benchmarking was intentionally deferred until this correctness gate passed.
+
+### Naive CUDA controlled benchmark
+
+- Added preallocated-output Triton benchmarking without changing its device
+  kernel.
+- Added 100-launch timing amplification for microsecond-scale operations.
+- Used three position-balanced orders so PyTorch, Triton, and CUDA each ran
+  first, middle, and last once per case.
+- Correctness-gated four shapes in FP32 and FP16 before timing; all eight cases
+  passed with zero mismatched values.
+- Collected 30 warmups and 600 measured samples per implementation/case on a
+  Modal NVIDIA L4, saving 14,400 raw CSV samples.
+- At 640×640 FP32, combined medians were 0.06169 ms for PyTorch, 0.02642 ms for
+  Triton, and 0.00557 ms for standalone naive CUDA.
+- The CUDA absolute saving was 0.05612 ms versus PyTorch and 0.02085 ms versus
+  Triton at this warm-cache repeated-launch boundary.
+- Documented that submission paths differ and that this is neither pure
+  device-instruction evidence nor an end-to-end improvement.
+- `pytest -q` passes 51 portable tests.
+
+Reports:
+
+- `results/modal_l4_cuda_preprocess_benchmark.json`
+- `benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv`

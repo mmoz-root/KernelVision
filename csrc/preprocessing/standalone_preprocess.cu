@@ -30,6 +30,7 @@ struct Options {
     int block_size = 256;
     int warmup_iterations = 1;
     int measured_iterations = 1;
+    int launches_per_sample = 1;
     std::string dtype;
     std::string input_path;
     std::string output_path;
@@ -62,6 +63,9 @@ Options parse_options(int argc, char** argv) {
         } else if (argument == "--iterations") {
             options.measured_iterations = std::stoi(
                 require_value(argc, argv, index));
+        } else if (argument == "--launches-per-sample") {
+            options.launches_per_sample = std::stoi(
+                require_value(argc, argv, index));
         } else if (argument == "--input") {
             options.input_path = require_value(argc, argv, index);
         } else if (argument == "--output") {
@@ -85,6 +89,9 @@ Options parse_options(int argc, char** argv) {
     if (options.warmup_iterations < 0 || options.measured_iterations <= 0) {
         throw std::invalid_argument(
             "warmup must be nonnegative and iterations must be positive");
+    }
+    if (options.launches_per_sample <= 0) {
+        throw std::invalid_argument("launches-per-sample must be positive");
     }
     if (options.input_path.empty() || options.output_path.empty() ||
         options.samples_path.empty()) {
@@ -223,13 +230,15 @@ void run(const Options& options) {
         check_cuda(cudaEventCreate(&starts[iteration]), "create start event");
         check_cuda(cudaEventCreate(&stops[iteration]), "create stop event");
         check_cuda(cudaEventRecord(starts[iteration]), "record start event");
-        launch_naive(
-            device_input,
-            device_output,
-            pixel_count,
-            options.block_size);
-        check_cuda(cudaGetLastError(), "measured kernel launch");
+        for (int launch = 0; launch < options.launches_per_sample; ++launch) {
+            launch_naive(
+                device_input,
+                device_output,
+                pixel_count,
+                options.block_size);
+        }
         check_cuda(cudaEventRecord(stops[iteration]), "record stop event");
+        check_cuda(cudaGetLastError(), "measured kernel launches");
     }
     check_cuda(
         cudaEventSynchronize(stops.back()),
@@ -250,7 +259,9 @@ void run(const Options& options) {
                 starts[iteration],
                 stops[iteration]),
             "calculate elapsed time");
-        sample_stream << iteration << ',' << elapsed_ms << '\n';
+        const float latency_per_launch_ms =
+            elapsed_ms / options.launches_per_sample;
+        sample_stream << iteration << ',' << latency_per_launch_ms << '\n';
         check_cuda(cudaEventDestroy(starts[iteration]), "destroy start event");
         check_cuda(cudaEventDestroy(stops[iteration]), "destroy stop event");
     }
