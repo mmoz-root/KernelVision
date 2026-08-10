@@ -178,3 +178,100 @@ Reports:
 
 - `results/modal_l4_cuda_preprocess_benchmark.json`
 - `benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv`
+
+## Naive CUDA block-size experiment
+
+### Question and controls
+
+The exploratory experiment asked whether thread-block grouping materially
+changes the unchanged naive kernel at 640×640 FP32. It varied only block size:
+128, 256, 512, and 1024 threads. Pixel mapping, input, dtype, kernel body,
+measurement amplification, and allocation/timing boundaries remained fixed.
+Every configuration passed correctness with zero mismatched values.
+
+Each configuration used 30 warmups, 100 launches per event interval, and 200
+samples in each of four cyclic orders. Every block size occupied the first,
+second, third, and fourth position exactly once. This produced 800 samples per
+configuration and 3,200 raw CSV rows.
+
+### Result
+
+| Block size | Blocks | Warps/block | Median | Round-median span | Change vs 256 |
+|---:|---:|---:|---:|---:|---:|
+| 128 | 3,200 | 4 | 5.70368 µs | 0.08192 µs | 0.01024 µs slower |
+| 256 | 1,600 | 8 | 5.69344 µs | 0.09808 µs | baseline |
+| 512 | 800 | 16 | 5.65248 µs | 0.08192 µs | 0.04096 µs faster |
+| 1024 | 400 | 32 | 5.76512 µs | 0.09120 µs | 0.07168 µs slower |
+
+Block 512 was the nominal exploratory minimum, only 0.72% or 40.96 ns faster
+than 256. That saving was smaller than the observed 98.08 ns round-median span,
+and 512 beat 256 in only two of four rounds. The predeclared evidence rule was
+therefore not met. No confirmation run was justified, and block size 256
+remains the robust default.
+
+This negative result is useful: changing launch grouping alone did not produce
+a repeatable improvement large enough to justify retuning the baseline. The
+next kernel change should be motivated by profiling rather than by choosing the
+smallest noisy median.
+
+Reports:
+
+- `results/modal_l4_cuda_block_size_experiment.json`
+- `benchmarks/raw/modal_l4_cuda_block_size_experiment.csv`
+
+## Naive CUDA Nsight Compute profile
+
+The unchanged 640×640 FP32, block-256 baseline was correctness-gated and then
+profiled on a Modal NVIDIA L4 with Nsight Compute 2025.3.0. The executable ran
+30 warmup launches; `--launch-skip 30 --launch-count 1` selected one subsequent
+kernel launch. The focused report includes Launch Stats, Occupancy, Speed of
+Light, Memory Workload Analysis and tables, Warp State, Scheduler, and
+Instruction Stats. The CUDA source hash and complete profiler command are saved
+with the results.
+
+The selected launch remained exact against the PyTorch reference. Nsight
+reported a 5.664 µs device duration, close to the approximately 5.5–5.7 µs
+repeated-launch benchmark range. This agreement indicates that native host
+submission gaps are not the dominant part of that amplified native CUDA
+result. Profiler duration remains diagnostic and does not replace the
+position-balanced timing report.
+
+Key metrics were:
+
+| Metric | Result |
+|---|---:|
+| Registers per thread | 16 |
+| Static/dynamic shared memory | 0 B / 0 B |
+| Theoretical / achieved occupancy | 100% / 73.04% |
+| Achieved active warps per SM | 35.06 of 48 |
+| L2 hit rate | 99.82% |
+| L2 / DRAM throughput | 69.59% / 10.91% of peak |
+| Compute throughput | 28.75% of peak |
+| Scheduler cycles with no eligible warp | 74.35% |
+| Active / eligible warps per scheduler | 8.76 / 0.49 |
+| Warp cycles per issued instruction | 34.13 cycles |
+
+The high L2 hit rate confirms that repeated buffers produce a warm-cache
+profile rather than fresh-frame DRAM behavior. Low register use and zero
+kernel shared memory allow 100% theoretical occupancy; the measured 73.04%
+reflects an average over a short 4.60-wave launch, including its partial final
+wave, rather than an obvious register or shared-memory limit.
+
+The actionable profiler finding was the interleaved BGR load pattern. A warp's
+per-channel byte loads use addresses `0, 3, 6, ...`, so Nsight reported only
+10.7 useful bytes per transmitted 32-byte sector. Scheduler analysis reported
+15.8 long-scoreboard cycles waiting on L1TEX dependencies, 46.2% of the average
+34.1 cycles between issued instructions. Planar output stores are already
+coalesced. The next isolated hypothesis is therefore to improve contiguous
+input loading while preserving those output stores, not to add arithmetic,
+reduce registers, or stage one-use pixels through shared memory without a
+measured benefit.
+
+Nsight rule speedup fields are heuristic opportunities, not measured or
+additive predictions. Caches and clocks were deliberately left uncontrolled,
+matching the warm-cache diagnostic boundary; the controlled CUDA-event
+benchmark remains the performance authority.
+
+Report:
+
+- `results/modal_l4_cuda_profile.json`

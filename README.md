@@ -18,9 +18,9 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–4 are implemented. Milestone 5 now has a validated and
-> benchmarked standalone naive CUDA preprocessing baseline on a Modal L4;
-> block experiments and the optimized CUDA implementation remain unfinished.
+> Status: Milestones 0–4 are implemented. Milestone 5 now has a validated,
+> benchmarked, and block-size-tested standalone naive CUDA baseline on a Modal
+> L4; profiling and the optimized CUDA implementation remain unfinished.
 
 ---
 
@@ -224,7 +224,8 @@ Report:
 - [x] Standalone raw-CUDA harness and deterministic correctness protocol
 - [x] Naive CUDA implementation and Modal L4 correctness validation
 - [x] Controlled PyTorch versus Triton versus naive CUDA baseline benchmark
-- [ ] Block-size and memory-access experiments
+- [x] Exploratory naive CUDA block-size experiment
+- [ ] Profile-guided memory-access experiment
 - [ ] Optimized CUDA implementation and final comparison
 
 ### Milestone 6 — PyTorch CUDA Extension
@@ -371,10 +372,17 @@ This is a warm-cache standalone comparison. Native C++ and Python/framework
 submission paths differ, and the result is not an end-to-end YOLO improvement
 or proof that further CUDA optimization will materially affect the detector.
 
+A position-balanced 640×640 FP32 sweep tested 128, 256, 512, and 1024 threads
+per block. Block 512 was nominally 40.96 ns faster than 256, but round-median
+variation reached 98.08 ns and 512 won only two of four rounds. No meaningful
+winner was established, so 256 remains the declared default.
+
 - `docs/cuda_preprocessing.md`
 - `results/modal_l4_cuda_preprocess_correctness.json`
 - `results/modal_l4_cuda_preprocess_benchmark.json`
 - `benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv`
+- `results/modal_l4_cuda_block_size_experiment.json`
+- `benchmarks/raw/modal_l4_cuda_block_size_experiment.csv`
 
 ---
 
@@ -496,6 +504,16 @@ modal run scripts/modal_cuda_benchmark.py \
   --launches-per-sample 100 \
   --block-size 256 \
   --num-warps 4
+
+modal run scripts/modal_cuda_block_size_experiment.py \
+  --warmup 30 \
+  --iterations 200 \
+  --launches-per-sample 100 \
+  --block-sizes 128,256,512,1024
+
+modal run scripts/modal_cuda_profile.py \
+  --warmup-launches 30 \
+  --json-out results/modal_l4_cuda_profile.json
 ```
 
 ### Run Video Inference

@@ -242,3 +242,52 @@ Reports:
 
 - `results/modal_l4_cuda_preprocess_benchmark.json`
 - `benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv`
+
+### Naive CUDA block-size experiment
+
+- Held the 640×640 FP32 kernel, data, dtype, and timing boundary fixed while
+  testing 128, 256, 512, and 1024 threads per block.
+- Used four position-balanced orders with 30 warmups, 200 samples per
+  configuration/round, and 100 launches per sample.
+- All four configurations passed correctness with zero mismatched values.
+- Saved 3,200 raw timing samples.
+- Combined medians ranged only from 5.65248 to 5.76512 µs.
+- Block 512 was nominally 40.96 ns (0.72%) faster than block 256, but observed
+  round-median variation reached 98.08 ns and 512 won only two of four rounds.
+- Did not run a winner confirmation or change the 256-thread default because
+  no meaningful block-size winner was established.
+
+Reports:
+
+- `results/modal_l4_cuda_block_size_experiment.json`
+- `benchmarks/raw/modal_l4_cuda_block_size_experiment.csv`
+
+
+### Naive CUDA Nsight Compute profile
+
+- Added a tested parser for Nsight Compute metric and rule rows plus a Modal L4
+  profiling workflow; portable tests now pass 55/55.
+- Preserved the unchanged 640×640 FP32, block-256 source and passed the
+  correctness gate with zero difference before profiling.
+- Skipped 30 warmups and profiled exactly one selected launch with focused
+  launch, occupancy, throughput, memory, warp, scheduler, and instruction
+  sections.
+- Measured 5.664 µs device duration versus the approximately 5.5–5.7 µs
+  repeated-launch benchmark range, making native submission overhead an
+  unlikely dominant explanation for the baseline latency.
+- Observed 16 registers/thread, no kernel shared memory, 100% theoretical and
+  73.04% achieved occupancy, a 99.82% L2 hit rate, 69.59% L2 throughput, and
+  28.75% compute throughput.
+- Nsight reported only 10.7 useful bytes per 32-byte sector for stride-three
+  BGR global loads. Schedulers averaged 8.76 active but only 0.49 eligible
+  warps, and long-scoreboard L1TEX dependencies occupied 15.8 cycles or 46.2%
+  of the average interval between issued instructions.
+- Selected contiguous packed input loading while retaining coalesced planar
+  stores as the optimization hypothesis. No optimized kernel has been written
+  or benchmarked yet.
+- Treat profiler rule speedups as non-additive heuristics and the profile as a
+  warm-cache diagnostic, not a replacement for controlled benchmark latency.
+
+Report:
+
+- `results/modal_l4_cuda_profile.json`
