@@ -39,6 +39,8 @@ excluded.
   - preallocated device buffers
   - CUDA-event sampling
   - the validated naive one-thread-per-pixel kernel
+  - the shared-memory coalescing experiment
+  - the warp-packed shuffle experiment
 - `src/kernelvision/preprocessing/cuda_standalone.py`
   - deterministic fixture definition
   - raw CUDA-output reader
@@ -67,8 +69,7 @@ partial block.
 ## Exercise 1 — naive one-thread-per-pixel kernel
 
 Open `naive_bgr_hwc_to_rgb_chw()` in
-`csrc/preprocessing/standalone_preprocess.cu`. Remove its `#error` line and
-implement only the marked body.
+`csrc/preprocessing/standalone_preprocess.cu` and implement the marked body.
 
 For pixel `i` and `P = H × W`:
 
@@ -275,3 +276,82 @@ benchmark remains the performance authority.
 Report:
 
 - `results/modal_l4_cuda_profile.json`
+
+## Profile-guided optimization experiments
+
+The profile motivated two isolated attempts to replace the stride-three input
+loads while preserving the already-coalesced planar output stores. Both
+candidates retained the naive kernel as the control and passed the same
+PyTorch-reference correctness gate in FP32 and FP16.
+
+### Candidate 1 — cooperative shared-memory staging
+
+Each block cooperatively copies its contiguous BGR bytes into a dynamic
+shared-memory tile. After `__syncthreads()`, one thread reads each local pixel
+and writes planar RGB. This changes warp global loads from `0, 3, 6, ...` to
+contiguous byte ranges, but adds shared-memory writes, a block barrier, and
+shared-memory reads.
+
+All 10 correctness cases passed with zero maximum absolute difference. A
+four-position balanced benchmark showed that the added work cost more than the
+improved coalescing saved. At 640×640, the candidate was 41.9% slower in FP32
+and 66.8% slower in FP16 than naive CUDA. It lost every round at that size.
+
+Reports:
+
+- `results/modal_l4_cuda_preprocess_coalesced_correctness.json`
+- `results/modal_l4_cuda_optimization_benchmark.json`
+- `benchmarks/raw/modal_l4_cuda_optimization_benchmark.csv`
+
+### Candidate 2 — warp-packed loads and shuffles
+
+The lower-overhead candidate assigns one warp to 32 pixels, or 96 BGR bytes.
+Lanes 0–23 each load one adjacent 32-bit word. Every output lane locates its
+three channel bytes, obtains the owning lane's word through `__shfl_sync`, and
+extracts the byte with shift-and-mask operations. The final partial warp uses
+a safe scalar fallback. This removes shared memory and the block barrier while
+retaining contiguous 32-bit global loads and planar output stores.
+
+All 10 correctness cases again passed with zero maximum absolute difference.
+The final benchmark used 30 warmups, 200 samples per round, 100 launches per
+event interval, and five cyclic orders. Each of PyTorch, Triton, naive CUDA,
+shared-memory CUDA, and warp-packed CUDA occupied every execution position
+once. This produced 1,000 samples per implementation/case and 40,000 raw rows.
+
+CUDA medians from that single controlled run:
+
+| Shape | Dtype | Naive | Shared staging | Warp packed |
+|---|---:|---:|---:|---:|
+| 320×320 | FP32 | 3.144 µs | 3.523 µs | 3.133 µs |
+| 320×320 | FP16 | 3.072 µs | 3.154 µs | 3.062 µs |
+| 384×640 | FP32 | 3.891 µs | 5.110 µs | 4.239 µs |
+| 384×640 | FP16 | 3.308 µs | 4.454 µs | 3.799 µs |
+| 640×640 | FP32 | 5.519 µs | 7.813 µs | 6.308 µs |
+| 640×640 | FP16 | 4.065 µs | 6.799 µs | 5.181 µs |
+| 720×1280 | FP32 | 11.223 µs | 16.210 µs | 12.943 µs |
+| 720×1280 | FP16 | 7.982 µs | 14.367 µs | 11.274 µs |
+
+At 320×320, warp packing was nominally 0.3% faster, only about 10 ns, and won
+two of five FP32 rounds and three of five FP16 rounds. That is not meaningful
+evidence of improvement. At every larger shape it lost all five rounds and was
+8.9–41.2% slower than naive CUDA. Shuffle and bit-extraction work therefore
+cost more than the packed loads saved under this warm-cache boundary.
+
+### Milestone 5 conclusion
+
+The profiler correctly identified inefficient per-instruction sector use, but
+optimizing that metric did not reduce total kernel latency. The 99.82% L2 hit
+rate made the naive loads inexpensive, while both alternatives added work.
+The naive one-thread-per-pixel kernel remains the fastest robust standalone
+implementation and is the implementation to carry into Milestone 6.
+
+No extra Nsight run was performed for the losing candidates: the predeclared
+performance gate reserves deeper profiling for a correct, meaningful timing
+improvement. The negative results are retained because they demonstrate the
+full profile → hypothesis → correctness → controlled measurement loop.
+
+Final reports:
+
+- `results/modal_l4_cuda_preprocess_warp_packed_correctness.json`
+- `results/modal_l4_cuda_final_benchmark.json`
+- `benchmarks/raw/modal_l4_cuda_final_benchmark.csv`

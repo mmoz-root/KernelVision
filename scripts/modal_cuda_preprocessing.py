@@ -49,7 +49,7 @@ def _run_checked(command: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 @app.function(image=runtime_image, gpu="L4", timeout=30 * 60)
-def validate_l4(block_size: int) -> dict[str, Any]:
+def validate_l4(block_size: int, implementation: str) -> dict[str, Any]:
     """Compile raw CUDA and compare it with the trusted PyTorch reference."""
     import torch
 
@@ -62,6 +62,10 @@ def validate_l4(block_size: int) -> dict[str, Any]:
 
     if block_size <= 0 or block_size > 1024:
         raise ValueError("block_size must be in [1, 1024]")
+    if implementation not in ("naive", "coalesced", "warp_packed"):
+        raise ValueError(
+            "implementation must be naive, coalesced, or warp_packed"
+        )
 
     source = Path("/root/csrc/preprocessing/standalone_preprocess.cu")
     binary = Path("/tmp/kernelvision_cuda_preprocess")
@@ -113,6 +117,8 @@ def validate_l4(block_size: int) -> dict[str, Any]:
                     dtype_name,
                     "--block-size",
                     str(block_size),
+                    "--implementation",
+                    implementation,
                     "--warmup",
                     "1",
                     "--iterations",
@@ -167,7 +173,7 @@ def validate_l4(block_size: int) -> dict[str, Any]:
         "metadata": {
             "timestamp_utc": datetime.now(UTC).isoformat(),
             "gpu": "NVIDIA L4",
-            "implementation": "naive standalone CUDA",
+            "implementation": f"{implementation} standalone CUDA",
             "block_size": block_size,
             "compile_command": compile_command,
             "nvcc_version": nvcc_version,
@@ -182,10 +188,11 @@ def validate_l4(block_size: int) -> dict[str, Any]:
 @app.local_entrypoint()
 def main(
     block_size: int = 256,
+    implementation: str = "naive",
     json_out: str = "results/modal_l4_cuda_preprocess_correctness.json",
 ) -> None:
-    """Run the naive CUDA correctness matrix and save its report locally."""
-    report = validate_l4.remote(block_size)
+    """Run one CUDA implementation's correctness matrix on an L4."""
+    report = validate_l4.remote(block_size, implementation)
     output = Path(json_out)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(

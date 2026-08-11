@@ -18,9 +18,10 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–4 are implemented. Milestone 5 now has a validated,
-> benchmarked, and block-size-tested standalone naive CUDA baseline on a Modal
-> L4; profiling and the optimized CUDA implementation remain unfinished.
+> Status: Milestones 0–5 are implemented. Milestone 5 established, profiled,
+> and compared a standalone CUDA preprocessing baseline with two
+> profile-guided alternatives on a Modal L4. The simple naive kernel remained
+> the fastest robust implementation.
 
 ---
 
@@ -225,8 +226,9 @@ Report:
 - [x] Naive CUDA implementation and Modal L4 correctness validation
 - [x] Controlled PyTorch versus Triton versus naive CUDA baseline benchmark
 - [x] Exploratory naive CUDA block-size experiment
-- [ ] Profile-guided memory-access experiment
-- [ ] Optimized CUDA implementation and final comparison
+- [x] Nsight Compute profile and profile-guided memory-access experiments
+- [x] Shared-memory and warp-packed CUDA candidates
+- [x] Final correctness-gated, position-balanced comparison
 
 ### Milestone 6 — PyTorch CUDA Extension
 
@@ -444,8 +446,9 @@ Profiling is driven by questions, not by collecting every available metric.
 ## Current Development Setup
 
 KernelVision currently implements the baseline inference pipeline, benchmark
-harness, FP32/FP16 comparison, and fused Triton preprocessing through
-Milestone 4. Use Python 3.11 for local development:
+harness, FP32/FP16 comparison, fused Triton preprocessing, and standalone CUDA
+preprocessing experiments through Milestone 5. Use Python 3.11 for local
+development:
 
 ```bash
 python3.11 -m venv .venv

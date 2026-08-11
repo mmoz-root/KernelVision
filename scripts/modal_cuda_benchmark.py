@@ -1,4 +1,4 @@
-"""Benchmark PyTorch, Triton, and naive CUDA preprocessing on a Modal L4."""
+"""Benchmark reference, Triton, and CUDA preprocessing variants on an L4."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ runtime_image = (
     .add_local_dir(CUDA_DIR, remote_path="/root/csrc")
 )
 
-app = modal.App("kernelvision-naive-cuda-benchmark")
+app = modal.App("kernelvision-cuda-optimization-benchmark")
 
 
 def _run_checked(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -67,7 +67,7 @@ def benchmark_l4(
     git_commit: str,
     git_worktree_dirty: bool,
 ) -> dict[str, Any]:
-    """Correctness-gate and benchmark all three implementations."""
+    """Correctness-gate and benchmark all five implementations."""
     import torch
 
     from kernelvision.benchmarking.statistics import summarize
@@ -94,7 +94,7 @@ def benchmark_l4(
     triton_source = Path(
         "/root/src/kernelvision/preprocessing/triton_kernel.py"
     )
-    binary = Path("/tmp/kernelvision_naive_cuda_benchmark")
+    binary = Path("/tmp/kernelvision_cuda_optimization_benchmark")
     compile_command = [
         "nvcc",
         "-O3",
@@ -143,6 +143,7 @@ def benchmark_l4(
         input_path: Path,
         output_path: Path,
         samples_path: Path,
+        implementation: str,
         warmup: int,
         iterations: int,
         launches: int,
@@ -157,6 +158,8 @@ def benchmark_l4(
             dtype_name,
             "--block-size",
             str(block_size),
+            "--implementation",
+            implementation,
             "--warmup",
             str(warmup),
             "--iterations",
@@ -182,9 +185,41 @@ def benchmark_l4(
         ("fp16", torch.float16, 2, 5e-4),
     )
     round_orders = (
-        ("pytorch", "triton", "naive_cuda"),
-        ("triton", "naive_cuda", "pytorch"),
-        ("naive_cuda", "pytorch", "triton"),
+        (
+            "pytorch",
+            "triton",
+            "naive_cuda",
+            "coalesced_cuda",
+            "warp_packed_cuda",
+        ),
+        (
+            "triton",
+            "naive_cuda",
+            "coalesced_cuda",
+            "warp_packed_cuda",
+            "pytorch",
+        ),
+        (
+            "naive_cuda",
+            "coalesced_cuda",
+            "warp_packed_cuda",
+            "pytorch",
+            "triton",
+        ),
+        (
+            "coalesced_cuda",
+            "warp_packed_cuda",
+            "pytorch",
+            "triton",
+            "naive_cuda",
+        ),
+        (
+            "warp_packed_cuda",
+            "pytorch",
+            "triton",
+            "naive_cuda",
+            "coalesced_cuda",
+        ),
     )
     cases = []
 
@@ -234,48 +269,65 @@ def benchmark_l4(
                     atol=tolerance,
                 )
 
-                correctness_output = temporary / (
-                    f"correctness_{height}x{width}_{dtype_name}.bin"
-                )
-                correctness_samples = temporary / (
-                    f"correctness_{height}x{width}_{dtype_name}.csv"
-                )
-                run_native(
-                    height=height,
-                    width=width,
-                    dtype_name=dtype_name,
-                    input_path=input_path,
-                    output_path=correctness_output,
-                    samples_path=correctness_samples,
-                    warmup=1,
-                    iterations=1,
-                    launches=1,
-                )
-                cuda_output = read_standalone_output(
-                    correctness_output,
-                    height=height,
-                    width=width,
-                    dtype_name=dtype_name,
-                    torch_module=torch,
-                ).to(device="cuda")
-                cuda_difference = (
-                    cuda_output.float() - expected.float()
-                ).abs()
-                cuda_maximum_difference = float(
-                    cuda_difference.max().item()
-                )
-                cuda_mean_difference = float(
-                    cuda_difference.mean().item()
-                )
-                cuda_mismatches = int(
-                    (cuda_difference > tolerance).sum().item()
-                )
-                torch.testing.assert_close(
-                    cuda_output,
-                    expected,
-                    rtol=0.0,
-                    atol=tolerance,
-                )
+                cuda_correctness = {}
+                for native_implementation in (
+                    "naive",
+                    "coalesced",
+                    "warp_packed",
+                ):
+                    correctness_output = temporary / (
+                        f"correctness_{native_implementation}_{height}x"
+                        f"{width}_{dtype_name}.bin"
+                    )
+                    correctness_samples = temporary / (
+                        f"correctness_{native_implementation}_{height}x"
+                        f"{width}_{dtype_name}.csv"
+                    )
+                    run_native(
+                        height=height,
+                        width=width,
+                        dtype_name=dtype_name,
+                        input_path=input_path,
+                        output_path=correctness_output,
+                        samples_path=correctness_samples,
+                        implementation=native_implementation,
+                        warmup=1,
+                        iterations=1,
+                        launches=1,
+                    )
+                    cuda_output = read_standalone_output(
+                        correctness_output,
+                        height=height,
+                        width=width,
+                        dtype_name=dtype_name,
+                        torch_module=torch,
+                    ).to(device="cuda")
+                    cuda_difference = (
+                        cuda_output.float() - expected.float()
+                    ).abs()
+                    cuda_maximum_difference = float(
+                        cuda_difference.max().item()
+                    )
+                    cuda_mean_difference = float(
+                        cuda_difference.mean().item()
+                    )
+                    cuda_mismatches = int(
+                        (cuda_difference > tolerance).sum().item()
+                    )
+                    torch.testing.assert_close(
+                        cuda_output,
+                        expected,
+                        rtol=0.0,
+                        atol=tolerance,
+                    )
+                    cuda_correctness[f"{native_implementation}_cuda"] = {
+                        "passed": True,
+                        "maximum_absolute_difference": (
+                            cuda_maximum_difference
+                        ),
+                        "mean_absolute_difference": cuda_mean_difference,
+                        "mismatched_values": cuda_mismatches,
+                    }
 
                 pytorch_operation = lambda: torch_reference_preprocess(
                     image,
@@ -291,6 +343,8 @@ def benchmark_l4(
                     "pytorch": [],
                     "triton": [],
                     "naive_cuda": [],
+                    "coalesced_cuda": [],
+                    "warp_packed_cuda": [],
                 }
 
                 for round_id, order in enumerate(round_orders, start=1):
@@ -306,11 +360,11 @@ def benchmark_l4(
                         else:
                             output_path = temporary / (
                                 f"round{round_id}_{height}x{width}_"
-                                f"{dtype_name}.bin"
+                                f"{dtype_name}_{implementation}.bin"
                             )
                             samples_path = temporary / (
                                 f"round{round_id}_{height}x{width}_"
-                                f"{dtype_name}.csv"
+                                f"{dtype_name}_{implementation}.csv"
                             )
                             samples = run_native(
                                 height=height,
@@ -319,6 +373,11 @@ def benchmark_l4(
                                 input_path=input_path,
                                 output_path=output_path,
                                 samples_path=samples_path,
+                                implementation={
+                                    "naive_cuda": "naive",
+                                    "coalesced_cuda": "coalesced",
+                                    "warp_packed_cuda": "warp_packed",
+                                }[implementation],
                                 warmup=warmup_iterations,
                                 iterations=measured_iterations,
                                 launches=launches_per_sample,
@@ -357,6 +416,16 @@ def benchmark_l4(
                 cuda_median = float(
                     implementations["naive_cuda"]["summary_ms"]["median"]
                 )
+                coalesced_median = float(
+                    implementations["coalesced_cuda"]["summary_ms"][
+                        "median"
+                    ]
+                )
+                warp_packed_median = float(
+                    implementations["warp_packed_cuda"]["summary_ms"][
+                        "median"
+                    ]
+                )
                 cases.append(
                     {
                         "height": height,
@@ -379,16 +448,7 @@ def benchmark_l4(
                                 ),
                                 "mismatched_values": triton_mismatches,
                             },
-                            "naive_cuda": {
-                                "passed": True,
-                                "maximum_absolute_difference": (
-                                    cuda_maximum_difference
-                                ),
-                                "mean_absolute_difference": (
-                                    cuda_mean_difference
-                                ),
-                                "mismatched_values": cuda_mismatches,
-                            },
+                            **cuda_correctness,
                         },
                         "implementations": implementations,
                         "comparisons": {
@@ -401,6 +461,27 @@ def benchmark_l4(
                             "naive_cuda_speedup_over_triton": (
                                 triton_median / cuda_median
                             ),
+                            "coalesced_cuda_speedup_over_pytorch": (
+                                pytorch_median / coalesced_median
+                            ),
+                            "coalesced_cuda_speedup_over_triton": (
+                                triton_median / coalesced_median
+                            ),
+                            "coalesced_cuda_speedup_over_naive_cuda": (
+                                cuda_median / coalesced_median
+                            ),
+                            "warp_packed_cuda_speedup_over_pytorch": (
+                                pytorch_median / warp_packed_median
+                            ),
+                            "warp_packed_cuda_speedup_over_triton": (
+                                triton_median / warp_packed_median
+                            ),
+                            "warp_packed_cuda_speedup_over_naive_cuda": (
+                                cuda_median / warp_packed_median
+                            ),
+                            "warp_packed_cuda_speedup_over_coalesced_cuda": (
+                                coalesced_median / warp_packed_median
+                            ),
                             "triton_saving_vs_pytorch_ms": (
                                 pytorch_median - triton_median
                             ),
@@ -410,13 +491,34 @@ def benchmark_l4(
                             "naive_cuda_saving_vs_triton_ms": (
                                 triton_median - cuda_median
                             ),
+                            "coalesced_cuda_saving_vs_pytorch_ms": (
+                                pytorch_median - coalesced_median
+                            ),
+                            "coalesced_cuda_saving_vs_triton_ms": (
+                                triton_median - coalesced_median
+                            ),
+                            "coalesced_cuda_saving_vs_naive_cuda_ms": (
+                                cuda_median - coalesced_median
+                            ),
+                            "warp_packed_cuda_saving_vs_pytorch_ms": (
+                                pytorch_median - warp_packed_median
+                            ),
+                            "warp_packed_cuda_saving_vs_triton_ms": (
+                                triton_median - warp_packed_median
+                            ),
+                            "warp_packed_cuda_saving_vs_naive_cuda_ms": (
+                                cuda_median - warp_packed_median
+                            ),
+                            "warp_packed_cuda_saving_vs_coalesced_cuda_ms": (
+                                coalesced_median - warp_packed_median
+                            ),
                         },
                     }
                 )
 
     return {
-        "schema_version": 1,
-        "experiment": "naive CUDA preprocessing baseline",
+        "schema_version": 3,
+        "experiment": "final profile-guided CUDA preprocessing comparison",
         "metadata": {
             "timestamp_utc": datetime.now(UTC).isoformat(),
             "git_commit": git_commit,
@@ -517,8 +619,8 @@ def main(
     launches_per_sample: int = 100,
     block_size: int = 256,
     num_warps: int = 4,
-    json_out: str = "results/modal_l4_cuda_preprocess_benchmark.json",
-    csv_out: str = "benchmarks/raw/modal_l4_cuda_preprocess_benchmark.csv",
+    json_out: str = "results/modal_l4_cuda_final_benchmark.json",
+    csv_out: str = "benchmarks/raw/modal_l4_cuda_final_benchmark.csv",
 ) -> None:
     """Run the comparison and save summary plus raw measurements locally."""
     git_commit = _run_checked(
@@ -555,7 +657,9 @@ def main(
             f"{case['height']}x{case['width']} {case['dtype']}: "
             f"PyTorch={implementations['pytorch']['summary_ms']['median']:.6f} ms, "
             f"Triton={implementations['triton']['summary_ms']['median']:.6f} ms, "
-            f"naive CUDA={implementations['naive_cuda']['summary_ms']['median']:.6f} ms"
+            f"naive CUDA={implementations['naive_cuda']['summary_ms']['median']:.6f} ms, "
+            f"coalesced CUDA={implementations['coalesced_cuda']['summary_ms']['median']:.6f} ms, "
+            f"warp-packed CUDA={implementations['warp_packed_cuda']['summary_ms']['median']:.6f} ms"
         )
     print(f"Saved benchmark report to {json_path}")
     print(f"Saved raw samples to {csv_path}")
