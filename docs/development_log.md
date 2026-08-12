@@ -291,3 +291,60 @@ Reports:
 Report:
 
 - `results/modal_l4_cuda_profile.json`
+
+## 2026-08-12 — Milestone 6 PyTorch CUDA extension
+
+### Extension and wrapper
+
+- Added a pybind C++ binding and PyTorch-aware CUDA translation unit.
+- Reused the correct naive one-thread-per-pixel CUDA calculation from Milestone
+  5 with FP32/FP16 template dispatch.
+- Added native validation for device, rank, channels, dtype, contiguity, and
+  positive shape.
+- Allocated output tensors with input device/options and launched on PyTorch's
+  current CUDA stream without a forced synchronization.
+- Added a lazy, cached Python extension loader and portable wrapper validation.
+- Passed 10/10 component correctness cases with maximum absolute difference 0.
+
+### Controlled component result
+
+- Compared allocating PyTorch, Triton, and extension public APIs with the
+  preallocated standalone CUDA boundary across four shapes and two dtypes.
+- Used four cyclic orders, 30 warmups, 200 samples per round, and 100 launches
+  per CUDA-event sample, producing 25,600 raw rows.
+- At 640×640 FP32, medians were 0.047524 ms PyTorch, 0.027238 ms Triton,
+  0.005601 ms standalone CUDA, and 0.006431 ms extension.
+- The extension-to-standalone gap quantifies integration overhead; it is not a
+  second device-kernel optimization.
+
+### YOLO integration and correctness
+
+- Added a custom Ultralytics `DetectionPredictor` subclass that preserves
+  letterboxing but sends contiguous BGR-HWC `uint8` tensors through the CUDA
+  extension.
+- Added `--preprocessor {ultralytics,cuda_extension}` to image, video, and
+  benchmark commands; standard Ultralytics preprocessing remains the default.
+- Compared complete YOLO detections by class and maximum IoU on `bus.jpg`.
+- FP32 and FP16 each produced six matching detections with zero box/confidence
+  difference and minimum IoU 1.0.
+
+### Complete-pipeline result
+
+- Measured standard and extension preprocessing in both orders for FP32 and
+  FP16, with 30 warmups and 200 samples in every run.
+- Preprocessing median improved by 20.83–22.46% in all four trials.
+- End-to-end median changed by -4.05%, -3.56%, -3.14%, and +1.30%.
+- The median paired change was -21.50% for preprocessing and -3.35% end to end,
+  but the one end-to-end regression prevents claiming a stable universal
+  pipeline speedup from this experiment.
+- Portable tests pass 65/65.
+
+Reports and documentation:
+
+- `docs/cuda_extension.md`
+- `results/modal_l4_cuda_extension_build.json`
+- `results/modal_l4_cuda_extension_correctness.json`
+- `results/modal_l4_cuda_extension_benchmark.json`
+- `results/modal_l4_cuda_extension_pipeline.json`
+- `results/modal_l4_cuda_extension_pipeline_benchmark.json`
+- `benchmarks/raw/modal_l4_cuda_extension_benchmark.csv`

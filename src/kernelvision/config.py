@@ -8,12 +8,21 @@ from typing import Literal
 
 
 Precision = Literal["fp32", "fp16"]
+Preprocessor = Literal["ultralytics", "cuda_extension"]
 
 
 def validate_precision(precision: str) -> None:
     """Reject precision modes that KernelVision does not benchmark."""
     if precision not in ("fp32", "fp16"):
         raise ValueError("precision must be either 'fp32' or 'fp16'")
+
+
+def validate_preprocessor(preprocessor: str) -> None:
+    """Reject preprocessing implementations KernelVision cannot select."""
+    if preprocessor not in ("ultralytics", "cuda_extension"):
+        raise ValueError(
+            "preprocessor must be either 'ultralytics' or 'cuda_extension'"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +36,7 @@ class ImageInferenceConfig:
     confidence: float = 0.25
     image_size: int = 640
     precision: Precision = "fp32"
+    preprocessor: Preprocessor = "ultralytics"
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -38,6 +48,7 @@ class ImageInferenceConfig:
         if self.image_size <= 0:
             raise ValueError("image_size must be greater than zero")
         validate_precision(self.precision)
+        validate_preprocessor(self.preprocessor)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +62,7 @@ class VideoInferenceConfig:
     confidence: float = 0.25
     image_size: int = 640
     precision: Precision = "fp32"
+    preprocessor: Preprocessor = "ultralytics"
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -62,3 +74,4 @@ class VideoInferenceConfig:
         if self.image_size <= 0:
             raise ValueError("image_size must be greater than zero")
         validate_precision(self.precision)
+        validate_preprocessor(self.preprocessor)

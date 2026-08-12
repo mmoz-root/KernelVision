@@ -1,0 +1,58 @@
+{
+  "cuda_translation_unit_loaded": true,
+  "environment": {
+    "Architecture": "x86_64",
+    "CUDA available": "True",
+    "CUDA devices": "1",
+    "GPU": "NVIDIA L4",
+    "MPS available": "False",
+    "NumPy": "2.4.6",
+    "OpenCV": "5.0.0.93",
+    "Platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.35",
+    "PyTorch": "2.13.0",
+    "PyTorch CUDA build": "13.0",
+    "Python": "3.11.5",
+    "Torchvision": "0.28.0",
+    "Triton": "3.7.1",
+    "Ultralytics": "8.4.115"
+  },
+  "extension_name": "kernelvision_cuda_extension",
+  "gpu": "NVIDIA L4",
+  "native_validation_cases": {
+    "channels": true,
+    "contiguous": true,
+    "cpu_device": true,
+    "dtype": true,
+    "positive_shape": true,
+    "rank": true
+  },
+  "output_metadata_cases": {
+    "fp16": {
+      "contiguous": true,
+      "device": "cuda:0",
+      "dtype": "torch.float16",
+      "passed": true,
+      "shape": [
+        3,
+        2,
+        3
+      ]
+    },
+    "fp32": {
+      "contiguous": true,
+      "device": "cuda:0",
+      "dtype": "torch.float32",
+      "passed": true,
+      "shape": [
+        3,
+        2,
+        3
+      ]
+    }
+  },
+  "sources": [
+    "/root/csrc/preprocessing/torch_extension.cpp",
+    "/root/csrc/preprocessing/torch_extension_kernel.cu"
+  ],
+  "timestamp_utc": "2026-08-12T14:15:14.046850+00:00"
+}

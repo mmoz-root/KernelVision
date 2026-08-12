@@ -1,0 +1,85 @@
+{
+  "cases": [
+    {
+      "baseline_speed_ms": {
+        "inference": 6.359093000000371,
+        "postprocess": 26.527505999997203,
+        "preprocess": 57.4838910000004
+      },
+      "class_ids": [
+        5,
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      "detection_count": 6,
+      "extension_speed_ms": {
+        "inference": 8.44550099999708,
+        "postprocess": 2.345557000012377,
+        "preprocess": 74849.922027
+      },
+      "maximum_box_difference": 0.0,
+      "maximum_confidence_difference": 0.0,
+      "minimum_iou": 1.0,
+      "passed": true,
+      "precision": "fp32"
+    },
+    {
+      "baseline_speed_ms": {
+        "inference": 9.14489999999546,
+        "postprocess": 2.068283999989262,
+        "preprocess": 12.554627000000096
+      },
+      "class_ids": [
+        5,
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      "detection_count": 6,
+      "extension_speed_ms": {
+        "inference": 11.881069000011735,
+        "postprocess": 1.612645999998108,
+        "preprocess": 2.4060719999994262
+      },
+      "maximum_box_difference": 0.0,
+      "maximum_confidence_difference": 0.0,
+      "minimum_iou": 1.0,
+      "passed": true,
+      "precision": "fp16"
+    }
+  ],
+  "confidence": 0.25,
+  "device": "NVIDIA L4",
+  "environment": {
+    "Architecture": "x86_64",
+    "CUDA available": "True",
+    "CUDA devices": "1",
+    "GPU": "NVIDIA L4",
+    "MPS available": "False",
+    "NumPy": "2.4.6",
+    "OpenCV": "5.0.0.93",
+    "Platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.35",
+    "PyTorch": "2.13.0",
+    "PyTorch CUDA build": "13.0",
+    "Python": "3.11.5",
+    "Torchvision": "0.28.0",
+    "Triton": "3.7.1",
+    "Ultralytics": "8.4.115"
+  },
+  "experiment": "CUDA extension YOLO pipeline correctness",
+  "image": "bus.jpg",
+  "image_size": 640,
+  "matching": "same class, then maximum intersection-over-union",
+  "model": "yolov8n.pt",
+  "timestamp_utc": "2026-08-12T16:14:22.174940+00:00",
+  "tolerances": {
+    "box_max_abs": 0.001,
+    "confidence_max_abs": 1e-05,
+    "minimum_iou": 0.99999
+  }
+}

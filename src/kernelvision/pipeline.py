@@ -52,7 +52,10 @@ def run_image_inference(
         raise FileNotFoundError(f"input image does not exist: {config.image}")
 
     config.output.parent.mkdir(parents=True, exist_ok=True)
-    selected_backend = backend or UltralyticsBackend(config.model)
+    selected_backend = backend or UltralyticsBackend(
+        config.model,
+        preprocessor=config.preprocessor,
+    )
     result = selected_backend.predict(
         config.image,
         confidence=config.confidence,
@@ -108,7 +111,10 @@ def run_video_inference(
         writer.release()
         raise RuntimeError(f"could not open output video: {config.output}")
 
-    selected_backend = backend or UltralyticsBackend(config.model)
+    selected_backend = backend or UltralyticsBackend(
+        config.model,
+        preprocessor=config.preprocessor,
+    )
     frame_count = 0
     try:
         while True:

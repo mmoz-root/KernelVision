@@ -232,12 +232,12 @@ Report:
 
 ### Milestone 6 — PyTorch CUDA Extension
 
-- C++ binding
-- CUDA kernel
-- Python wrapper
-- Input validation
-- Automated tests
-- Pipeline integration
+- [x] C++ binding
+- [x] CUDA kernel
+- [x] Python wrapper
+- [x] Input validation
+- [x] Automated tests
+- [x] Pipeline integration
 
 ### Milestone 7 — ONNX and TensorRT
 
@@ -446,9 +446,9 @@ Profiling is driven by questions, not by collecting every available metric.
 ## Current Development Setup
 
 KernelVision currently implements the baseline inference pipeline, benchmark
-harness, FP32/FP16 comparison, fused Triton preprocessing, and standalone CUDA
-preprocessing experiments through Milestone 5. Use Python 3.11 for local
-development:
+harness, FP32/FP16 comparison, fused Triton preprocessing, standalone CUDA
+experiments, and PyTorch CUDA-extension pipeline integration through Milestone
+6. Use Python 3.11 for local development:
 
 ```bash
 python3.11 -m venv .venv

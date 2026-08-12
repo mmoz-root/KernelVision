@@ -128,6 +128,16 @@ def test_image_pipeline_rejects_a_missing_input(tmp_path: Path) -> None:
         run_image_inference(config, backend=FakeBackend())
 
 
+def test_image_config_rejects_unknown_preprocessor(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="preprocessor must be either"):
+        ImageInferenceConfig(
+            model="fake.pt",
+            image=tmp_path / "input.jpg",
+            output=tmp_path / "output.jpg",
+            preprocessor="unknown",  # type: ignore[arg-type]
+        )
+
+
 def test_video_pipeline_decodes_predicts_and_encodes_frames(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

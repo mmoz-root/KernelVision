@@ -15,7 +15,12 @@ from kernelvision.benchmarking.report import (
     build_report,
 )
 from kernelvision.benchmarking.timers import synchronize_device
-from kernelvision.config import Precision, validate_precision
+from kernelvision.config import (
+    Precision,
+    Preprocessor,
+    validate_precision,
+    validate_preprocessor,
+)
 from kernelvision.environment import collect_environment
 
 
@@ -29,6 +34,7 @@ class ImageBenchmarkConfig:
     confidence: float = 0.25
     image_size: int = 640
     precision: Precision = "fp32"
+    preprocessor: Preprocessor = "ultralytics"
     warmup_iterations: int = 30
     measured_iterations: int = 200
 
@@ -42,6 +48,7 @@ class ImageBenchmarkConfig:
         if self.image_size <= 0:
             raise ValueError("image_size must be greater than zero")
         validate_precision(self.precision)
+        validate_preprocessor(self.preprocessor)
         if self.warmup_iterations < 0:
             raise ValueError("warmup_iterations cannot be negative")
         if self.measured_iterations <= 0:
@@ -120,7 +127,10 @@ def run_image_benchmark(
     if validation_frame is None:
         raise RuntimeError(f"could not decode input image: {config.image}")
 
-    selected_backend = backend or UltralyticsBackend(config.model)
+    selected_backend = backend or UltralyticsBackend(
+        config.model,
+        preprocessor=config.preprocessor,
+    )
     for _ in range(config.warmup_iterations):
         warmup_result = selected_backend.predict(
             validation_frame,
@@ -182,6 +192,7 @@ def run_image_benchmark(
     metadata = {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "backend": "ultralytics",
+        "preprocessor": config.preprocessor,
         "model": config.model,
         "image": str(config.image),
         "source_shape_hwc": list(validation_frame.shape),

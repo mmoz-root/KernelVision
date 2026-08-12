@@ -71,6 +71,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="model compute precision (default: fp32)",
     )
     image_parser.add_argument(
+        "--preprocessor",
+        choices=("ultralytics", "cuda_extension"),
+        default="ultralytics",
+        help="image preprocessing implementation (default: ultralytics)",
+    )
+    image_parser.add_argument(
         "--output",
         required=True,
         type=Path,
@@ -116,6 +122,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("fp32", "fp16"),
         default="fp32",
         help="model compute precision (default: fp32)",
+    )
+    video_parser.add_argument(
+        "--preprocessor",
+        choices=("ultralytics", "cuda_extension"),
+        default="ultralytics",
+        help="image preprocessing implementation (default: ultralytics)",
     )
     video_parser.add_argument(
         "--output",
@@ -164,6 +176,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="model compute precision (default: fp32)",
     )
     benchmark_parser.add_argument(
+        "--preprocessor",
+        choices=("ultralytics", "cuda_extension"),
+        default="ultralytics",
+        help="image preprocessing implementation (default: ultralytics)",
+    )
+    benchmark_parser.add_argument(
         "--warmup",
         dest="warmup_iterations",
         default=30,
@@ -209,6 +227,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 confidence=args.confidence,
                 image_size=args.image_size,
                 precision=args.precision,
+                preprocessor=args.preprocessor,
             )
             output = run_image_inference(config)
         except (FileNotFoundError, RuntimeError, ValueError) as error:
@@ -224,6 +243,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 confidence=args.confidence,
                 image_size=args.image_size,
                 precision=args.precision,
+                preprocessor=args.preprocessor,
             )
             summary = run_video_inference(config)
         except (FileNotFoundError, RuntimeError, ValueError) as error:
@@ -241,6 +261,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 confidence=args.confidence,
                 image_size=args.image_size,
                 precision=args.precision,
+                preprocessor=args.preprocessor,
                 warmup_iterations=args.warmup_iterations,
                 measured_iterations=args.measured_iterations,
             )
