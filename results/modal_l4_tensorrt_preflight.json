@@ -1,0 +1,35 @@
+{
+  "builder_flag_has_fp16": false,
+  "builder_has_build_serialized_network": true,
+  "cuda_base_image": "nvidia/cuda:13.0.0-devel-ubuntu22.04",
+  "gpu": "NVIDIA L4",
+  "inputs": [
+    {
+      "dtype": "DataType.FLOAT",
+      "name": "images",
+      "shape": [
+        1,
+        3,
+        640,
+        640
+      ]
+    }
+  ],
+  "network_creation_flag_has_strongly_typed": true,
+  "network_layer_count": 309,
+  "outputs": [
+    {
+      "dtype": "DataType.FLOAT",
+      "name": "output0",
+      "shape": [
+        1,
+        84,
+        8400
+      ]
+    }
+  ],
+  "parsed": true,
+  "parser_errors": [],
+  "tensorrt_version": "11.2.1.2",
+  "timestamp_utc": "2026-08-21T18:48:29.817231+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "allclose_atol_1e-3_rtol_1e-3": true,
+  "element_count": 705600,
+  "engine_sha256": "153d66bad9378c98d8d1df105a1bd1703b850f1dca352b69615432f336bfb661",
+  "experiment": "TensorRT FP32 raw-output correctness",
+  "gpu": "NVIDIA L4",
+  "maximum_absolute_difference": 0.0028228759765625,
+  "mean_absolute_difference": 2.475343535479624e-06,
+  "runtime": {
+    "input_dtype": "DataType.FLOAT",
+    "input_name": "images",
+    "input_shape": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "output_dtype": "DataType.FLOAT",
+    "output_name": "output0",
+    "output_shape": [
+      1,
+      84,
+      8400
+    ],
+    "tensorrt_version": "11.2.1.2"
+  },
+  "shape": [
+    1,
+    84,
+    8400
+  ],
+  "timestamp_utc": "2026-08-21T20:32:27.391020+00:00"
+}

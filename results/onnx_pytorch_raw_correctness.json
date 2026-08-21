@@ -1,0 +1,12 @@
+{
+  "allclose_atol_1e-4_rtol_1e-4": true,
+  "element_count": 705600,
+  "maximum_absolute_difference": 0.004058837890625,
+  "mean_absolute_difference": 2.9809807529090904e-06,
+  "p99_absolute_difference": 6.866455078125e-05,
+  "shape": [
+    1,
+    84,
+    8400
+  ]
+}

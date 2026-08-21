@@ -1,0 +1,14 @@
+{
+  "confidence": 0.25,
+  "image": "/Users/ozbey/Desktop/AIML/KernelVision/.venv/lib/python3.11/site-packages/ultralytics/assets/bus.jpg",
+  "image_size": 640,
+  "matched_detection_count": 5,
+  "maximum_confidence_difference": 3.5762786865234375e-07,
+  "maximum_coordinate_difference_px": 0.0001220703125,
+  "mean_matched_iou": 0.9999991297332904,
+  "minimum_matched_iou": 0.9999978216162253,
+  "onnx_detection_count": 5,
+  "pytorch_detection_count": 5,
+  "unmatched_onnx_count": 0,
+  "unmatched_pytorch_count": 0
+}
