@@ -7,6 +7,7 @@ name = "kernelvision"
 version = "0.1.0"
 description = "An end-to-end GPU optimization study of object-detection inference."
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.9"
 
 [project.optional-dependencies]

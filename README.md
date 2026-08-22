@@ -23,6 +23,9 @@ The project progressively compares implementations using **PyTorch, Triton, CUDA
 > and TensorRT, plus an annotated TensorRT demo, reproducible plots, and a
 > consolidated [final report](docs/final_report.md).
 
+The validated ONNX deployment graphs are published in the
+[KernelVision Hugging Face model repository](https://huggingface.co/mmoz-root/kernelvision).
+
 ---
 
 ## Motivation
@@ -42,7 +45,7 @@ The goal is to connect GPU programming concepts to a real ML system.
 
 ## Project Goals
 
-The minimum viable project will include:
+The completed project includes:
 
 - A correct image and video detection pipeline
 - Component-level and end-to-end benchmarking
@@ -132,36 +135,31 @@ The same operation is implemented in CUDA:
 
 ---
 
-## Planned Repository Structure
+## Repository Structure
 
 ```text
 kernelvision/
 ├── README.md
+├── LICENSE
 ├── pyproject.toml
-├── requirements.txt
-├── configs/
 ├── src/
 │   └── kernelvision/
 │       ├── cli.py
 │       ├── pipeline.py
 │       ├── backends/
 │       ├── preprocessing/
-│       ├── postprocessing/
-│       ├── benchmarking/
-│       ├── visualization/
-│       └── utils/
-├── csrc/
-│   ├── preprocess_binding.cpp
-│   └── preprocess_kernel.cu
-├── scripts/
-├── tests/
-├── benchmarks/
-├── results/
-├── assets/
-└── docs/
+│       └── benchmarking/
+├── csrc/preprocessing/     # Standalone and extension CUDA code
+├── scripts/                # Reproduction and Modal experiments
+├── tests/                  # Portable correctness and unit tests
+├── benchmarks/raw/         # Raw timing samples
+├── results/                # Reports, plots, and final demo
+├── docs/                   # Methodology and final report
+└── hf_model/               # Hugging Face model-card source
 ```
 
-The structure will grow incrementally. Empty modules will not be created before they are needed.
+The repository keeps generated checkpoints, ONNX graphs, and TensorRT engines
+out of version control because they are reproducible or environment-specific.
 
 ---
 
@@ -728,12 +726,20 @@ The intended final result is a portfolio project demonstrating:
 - Computer vision
 - Reproducible engineering
 
-A future resume bullet will be based on measured results:
+Resume summary:
 
-> Built an end-to-end GPU-optimized object-detection inference pipeline using PyTorch, Triton, CUDA, ONNX, and TensorRT; implemented fused image preprocessing as Triton and custom PyTorch CUDA operators, profiled component-level bottlenecks, and improved measured latency from **[baseline]** to **[optimized]** on **[GPU]** while preserving detection correctness.
+> Built and profiled an end-to-end YOLOv8n inference pipeline using PyTorch,
+> Triton, CUDA, ONNX, and TensorRT; achieved a **6.671× model-only** and
+> **1.407× end-to-end** median speedup on an **NVIDIA L4** while matching all
+> five reference detections on the final correctness case.
 
 ---
 
 ## License
 
-A license will be selected before public release.
+KernelVision is released under the [GNU AGPL v3](LICENSE). Ultralytics YOLOv8,
+the YOLOv8n model, and the source sample image retain their respective
+third-party terms. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
+details. Model checkpoints, exported ONNX graphs, and TensorRT engines are not
+committed to this GitHub repository. The two validated ONNX graphs are
+published separately on Hugging Face with their provenance and limitations.
