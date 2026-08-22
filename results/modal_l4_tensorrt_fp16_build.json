@@ -1,0 +1,33 @@
+{
+  "engine_sha256": "2c2530455ee9175643ffb67aa5dafcd29fea2912393ecff04986694eeb5f3fb9",
+  "engine_size_bytes": 85107268,
+  "experiment": "TensorRT FP16 engine build",
+  "gpu": "NVIDIA L4",
+  "input": {
+    "dtype": "DataType.HALF",
+    "name": "images",
+    "shape": [
+      1,
+      3,
+      640,
+      640
+    ]
+  },
+  "network_layer_count": 313,
+  "onnx_model": "yolov8n_mixed_fp16.onnx",
+  "onnx_sha256": "5d319e1d30f30d6e64bcfab3ca86a4d4844b1d8f740f0495d4d211fc0b069759",
+  "output": {
+    "dtype": "DataType.HALF",
+    "name": "output0",
+    "shape": [
+      1,
+      84,
+      8400
+    ]
+  },
+  "precision": "fp16",
+  "tensorrt_version": "11.2.1.2",
+  "tf32_allowed": false,
+  "timestamp_utc": "2026-08-22T07:37:43.099538+00:00",
+  "workspace_bytes": 1073741824
+}

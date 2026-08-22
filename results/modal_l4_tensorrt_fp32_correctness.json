@@ -1,11 +1,24 @@
 {
-  "allclose_atol_1e-3_rtol_1e-3": true,
+  "allclose": true,
+  "atol": 0.001,
+  "box_maximum_difference": 0.0028228759765625,
+  "box_mean_difference": 5.1981729484396055e-05,
+  "class_maximum_difference": 8.605420589447021e-07,
+  "class_mean_difference": 2.4492533001740924e-11,
+  "class_scores_allclose": true,
+  "close_fraction": 1.0,
   "element_count": 705600,
   "engine_sha256": "153d66bad9378c98d8d1df105a1bd1703b850f1dca352b69615432f336bfb661",
   "experiment": "TensorRT FP32 raw-output correctness",
   "gpu": "NVIDIA L4",
   "maximum_absolute_difference": 0.0028228759765625,
   "mean_absolute_difference": 2.475343535479624e-06,
+  "outputs_finite": true,
+  "p99_absolute_difference": 6.103515625e-05,
+  "precision": "fp32",
+  "raw_gate_passed": true,
+  "reference": "PyTorch FP32",
+  "rtol": 0.001,
   "runtime": {
     "input_dtype": "DataType.FLOAT",
     "input_name": "images",
@@ -29,5 +42,5 @@
     84,
     8400
   ],
-  "timestamp_utc": "2026-08-21T20:32:27.391020+00:00"
+  "timestamp_utc": "2026-08-22T08:56:30.953689+00:00"
 }

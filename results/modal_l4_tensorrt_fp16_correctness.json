@@ -1,0 +1,46 @@
+{
+  "allclose": false,
+  "atol": 0.01,
+  "box_maximum_difference": 10.0,
+  "box_mean_difference": 0.16682767868041992,
+  "class_maximum_difference": 0.001220703125,
+  "class_mean_difference": 8.272867546565976e-08,
+  "class_scores_allclose": true,
+  "close_fraction": 0.997349739074707,
+  "element_count": 705600,
+  "engine_sha256": "2c2530455ee9175643ffb67aa5dafcd29fea2912393ecff04986694eeb5f3fb9",
+  "experiment": "TensorRT FP16 raw-output correctness",
+  "gpu": "NVIDIA L4",
+  "maximum_absolute_difference": 10.0,
+  "mean_absolute_difference": 0.00794219970703125,
+  "outputs_finite": true,
+  "p99_absolute_difference": 0.25,
+  "precision": "fp16",
+  "raw_gate_passed": true,
+  "reference": "ModelOpt mixed FP16 ONNX",
+  "rtol": 0.01,
+  "runtime": {
+    "input_dtype": "DataType.HALF",
+    "input_name": "images",
+    "input_shape": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "output_dtype": "DataType.HALF",
+    "output_name": "output0",
+    "output_shape": [
+      1,
+      84,
+      8400
+    ],
+    "tensorrt_version": "11.2.1.2"
+  },
+  "shape": [
+    1,
+    84,
+    8400
+  ],
+  "timestamp_utc": "2026-08-22T08:55:59.123095+00:00"
+}

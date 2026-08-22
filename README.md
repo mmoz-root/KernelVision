@@ -18,10 +18,10 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–5 are implemented. Milestone 5 established, profiled,
-> and compared a standalone CUDA preprocessing baseline with two
-> profile-guided alternatives on a Modal L4. The simple naive kernel remained
-> the fastest robust implementation.
+> Status: Milestones 0–7 are implemented. Milestone 7 exports YOLOv8n through
+> ONNX, builds strongly typed FP32 and mixed FP16 TensorRT engines, validates
+> raw and post-NMS correctness, and measures both model-only and complete
+> application latency on a Modal NVIDIA L4.
 
 ---
 
@@ -241,11 +241,11 @@ Report:
 
 ### Milestone 7 — ONNX and TensorRT
 
-- ONNX export
-- TensorRT FP16 engine
-- TensorRT backend
-- Output validation
-- PyTorch and TensorRT comparison
+- [x] Fixed-shape ONNX export and inspection
+- [x] Strongly typed TensorRT FP32 and mixed FP16 engines
+- [x] Reusable TensorRT backend with a dedicated CUDA stream
+- [x] Raw-output and final-detection correctness validation
+- [x] Position-balanced model-only and end-to-end comparisons
 
 ### Milestone 8 — Final Demo and Report
 
@@ -447,8 +447,9 @@ Profiling is driven by questions, not by collecting every available metric.
 
 KernelVision currently implements the baseline inference pipeline, benchmark
 harness, FP32/FP16 comparison, fused Triton preprocessing, standalone CUDA
-experiments, and PyTorch CUDA-extension pipeline integration through Milestone
-6. Use Python 3.11 for local development:
+experiments, PyTorch CUDA-extension pipeline integration, ONNX export, and
+TensorRT FP16 inference through Milestone 7. Use Python 3.11 for local
+development:
 
 ```bash
 python3.11 -m venv .venv
@@ -460,8 +461,8 @@ kernelvision environment
 
 The local Apple Silicon environment is used for package development and
 dependency-free tests. GPU implementation, correctness checks, profiling, and
-benchmarks will run on a Modal-hosted NVIDIA L4. Future benchmark reports will
-record the exact container, CUDA, PyTorch, and GPU configuration.
+benchmarks run on a Modal-hosted NVIDIA L4. Published benchmark reports record
+the exact container, CUDA, PyTorch, and GPU configuration.
 
 ## Example Commands
 
@@ -484,7 +485,7 @@ kernelvision image \
   --output results/example_annotated.jpg
 ```
 
-Use `--device 0` for the first CUDA GPU in the future Modal L4 environment.
+Use `--device 0` for the first CUDA GPU in the Modal L4 environment.
 Local CPU runs validate behavior only and are not benchmark results.
 
 ### Reproduce the Modal L4 precision experiments
@@ -517,6 +518,26 @@ modal run scripts/modal_cuda_block_size_experiment.py \
 modal run scripts/modal_cuda_profile.py \
   --warmup-launches 30 \
   --json-out results/modal_l4_cuda_profile.json
+
+python scripts/export_onnx.py
+python scripts/inspect_onnx.py
+python scripts/compare_onnx_pytorch.py
+
+modal run scripts/modal_onnx_autocast.py
+modal run scripts/modal_tensorrt_build.py --precision fp32
+modal run scripts/modal_tensorrt_build.py --precision fp16
+modal run scripts/modal_tensorrt_runtime.py --precision fp32
+modal run scripts/modal_tensorrt_runtime.py --precision fp16
+modal run scripts/modal_tensorrt_detection_comparison.py
+modal run scripts/modal_tensorrt_backend_smoke.py
+
+modal run scripts/modal_tensorrt_model_benchmark.py \
+  --warmup 30 \
+  --iterations 200
+
+modal run scripts/modal_tensorrt_end_to_end_benchmark.py \
+  --warmup 30 \
+  --iterations 200
 ```
 
 ### Run Video Inference
@@ -566,9 +587,51 @@ pytest -q
 
 ## Benchmark Results
 
-No results are published yet.
+### Milestone 7 TensorRT results
 
-Planned summary format:
+The model-only experiment times the raw model forward pass with CUDA events.
+Model/engine loading, preprocessing, NMS, and visualization are excluded.
+Every backend received a fixed `[1, 3, 640, 640]` input; the experiment used 30
+warm-ups and 200 position-balanced measurements in one Modal NVIDIA L4 run.
+
+| Backend | Median | P95 | Median relative to TensorRT |
+|---|---:|---:|---:|
+| PyTorch FP32 | 9.529 ms | 9.820 ms | 6.671× |
+| PyTorch FP16 | 12.324 ms | 12.650 ms | 8.627× |
+| TensorRT FP16 | 1.428 ms | 1.477 ms | 1.000× |
+
+In this controlled run, eager PyTorch FP16 was `29.3%` slower than PyTorch
+FP32. Reduced precision alone does not guarantee faster execution; identifying
+the exact PyTorch slowdown would require a separate profiler experiment.
+
+The complete application experiment uses synchronized wall-clock timing and
+includes image decode, preprocessing, host-to-device transfer, raw model
+execution, NMS, and in-memory visualization. Model/engine loading and file
+output remain excluded.
+
+| Pipeline | Median | Mean | P95 | TensorRT median speedup |
+|---|---:|---:|---:|---:|
+| PyTorch FP32 | 13.600 ms | 13.951 ms | 15.841 ms | — |
+| TensorRT FP16 | 9.664 ms | 10.041 ms | 11.969 ms | 1.407× |
+
+The smaller end-to-end speedup is expected: TensorRT accelerates the model,
+while decoding, preprocessing, NMS, and visualization remain shared costs.
+
+Correctness was established before benchmarking. FP32 passed a strict raw
+all-close gate. FP16 produced finite outputs with matching class scores, and
+the final post-NMS comparison matched all five detections on `bus.jpg`: no
+unmatched boxes, mean IoU `0.99747`, and maximum coordinate difference
+`0.547 px`.
+
+- Model-only data: [`results/modal_l4_tensorrt_model_benchmark.json`](results/modal_l4_tensorrt_model_benchmark.json)
+- Complete-pipeline data: [`results/modal_l4_tensorrt_end_to_end_benchmark.json`](results/modal_l4_tensorrt_end_to_end_benchmark.json)
+- FP16 raw correctness: [`results/modal_l4_tensorrt_fp16_correctness.json`](results/modal_l4_tensorrt_fp16_correctness.json)
+- Final-detection correctness: [`results/modal_l4_tensorrt_fp16_detections.json`](results/modal_l4_tensorrt_fp16_detections.json)
+
+### Cross-milestone summary
+
+The broader pipeline table remains incremental because earlier implementations
+used different timing scopes that should not be merged into one claim.
 
 | Pipeline | Preprocess | Inference | Postprocess | End-to-end | FPS |
 |---|---:|---:|---:|---:|---:|

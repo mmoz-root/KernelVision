@@ -1,0 +1,12 @@
+{
+  "experiment": "ModelOpt ONNX FP16 AutoCast",
+  "low_precision_type": "fp16",
+  "modelopt_version": "0.45.0",
+  "opset": 17,
+  "output_model": "yolov8n_mixed_fp16.onnx",
+  "output_sha256": "5d319e1d30f30d6e64bcfab3ca86a4d4844b1d8f740f0495d4d211fc0b069759",
+  "output_size_bytes": 6503800,
+  "source_model": "yolov8n.onnx",
+  "source_sha256": "3db80127ae56dae98402da2b3bd11ef2214a61c1f30e69166148087e43f3bc5e",
+  "timestamp_utc": "2026-08-22T07:21:51.776883+00:00"
+}
