@@ -18,10 +18,10 @@ Annotated output + performance report
 
 The project progressively compares implementations using **PyTorch, Triton, CUDA C++, ONNX, and TensorRT**.
 
-> Status: Milestones 0–7 are implemented. Milestone 7 exports YOLOv8n through
-> ONNX, builds strongly typed FP32 and mixed FP16 TensorRT engines, validates
-> raw and post-NMS correctness, and measures both model-only and complete
-> application latency on a Modal NVIDIA L4.
+> Status: Milestones 0–8 are complete. KernelVision now includes the full
+> correctness-first optimization path from PyTorch through Triton, CUDA, ONNX,
+> and TensorRT, plus an annotated TensorRT demo, reproducible plots, and a
+> consolidated [final report](docs/final_report.md).
 
 ---
 
@@ -249,12 +249,12 @@ Report:
 
 ### Milestone 8 — Final Demo and Report
 
-- Annotated image/video demo
-- Final benchmark tables and plots
-- Architecture diagram
-- Profiler findings
-- Limitations and failed experiments
-- Reproduction instructions
+- [x] Annotated TensorRT image demo
+- [x] Final benchmark tables and plots
+- [x] Architecture diagram
+- [x] Profiler findings
+- [x] Limitations and failed experiments
+- [x] Reproduction instructions
 
 ---
 
@@ -448,7 +448,7 @@ Profiling is driven by questions, not by collecting every available metric.
 KernelVision currently implements the baseline inference pipeline, benchmark
 harness, FP32/FP16 comparison, fused Triton preprocessing, standalone CUDA
 experiments, PyTorch CUDA-extension pipeline integration, ONNX export, and
-TensorRT FP16 inference through Milestone 7. Use Python 3.11 for local
+TensorRT FP16 inference through Milestone 8. Use Python 3.11 for local
 development:
 
 ```bash
@@ -538,6 +538,9 @@ modal run scripts/modal_tensorrt_model_benchmark.py \
 modal run scripts/modal_tensorrt_end_to_end_benchmark.py \
   --warmup 30 \
   --iterations 200
+
+modal run scripts/modal_tensorrt_demo.py
+python scripts/plot_final_results.py
 ```
 
 ### Run Video Inference
@@ -630,17 +633,10 @@ unmatched boxes, mean IoU `0.99747`, and maximum coordinate difference
 
 ### Cross-milestone summary
 
-The broader pipeline table remains incremental because earlier implementations
-used different timing scopes that should not be merged into one claim.
-
-| Pipeline | Preprocess | Inference | Postprocess | End-to-end | FPS |
-|---|---:|---:|---:|---:|---:|
-| PyTorch FP32 | 2.247 ms | 7.431 ms | 1.341 ms | 18.497 ms | 53.469 |
-| PyTorch FP16 | TBD | TBD | TBD | TBD | TBD |
-| Triton preprocessing | TBD | TBD | TBD | TBD | TBD |
-| CUDA preprocessing | TBD | TBD | TBD | TBD | TBD |
-| TensorRT FP16 | TBD | TBD | TBD | TBD | TBD |
-| Fully optimized | TBD | TBD | TBD | TBD | TBD |
+Component microbenchmarks and complete-pipeline benchmarks intentionally use
+different timing scopes and should not be merged into one additive table. The
+[final report](docs/final_report.md) presents separate preprocessing,
+model-only, and end-to-end tables with their exact boundaries.
 
 The PyTorch FP32 row is the Milestone 2 Modal NVIDIA L4 baseline. Latencies are
 medians; FPS is derived from mean end-to-end latency. The run used YOLOv8n,

@@ -8,4 +8,5 @@ __pycache__/
 *.engine
 :memory:.ses
 results/*.jpg
+!results/tensorrt_fp16_bus.jpg
 results/*.mp4

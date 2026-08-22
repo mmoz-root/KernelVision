@@ -1,0 +1,77 @@
+{
+  "backend": "TensorRT FP16 engine",
+  "confidence": 0.25,
+  "detection_count": 5,
+  "detections": [
+    {
+      "box_xyxy": [
+        669.9375,
+        380.53125,
+        810.0,
+        879.1875
+      ],
+      "class_id": 0,
+      "class_name": "person",
+      "confidence": 0.890625
+    },
+    {
+      "box_xyxy": [
+        221.484375,
+        407.53125,
+        343.828125,
+        856.40625
+      ],
+      "class_id": 0,
+      "class_name": "person",
+      "confidence": 0.88232421875
+    },
+    {
+      "box_xyxy": [
+        50.625,
+        397.40625,
+        244.265625,
+        905.34375
+      ],
+      "class_id": 0,
+      "class_name": "person",
+      "confidence": 0.87744140625
+    },
+    {
+      "box_xyxy": [
+        31.21875,
+        230.765625,
+        801.5625,
+        775.828125
+      ],
+      "class_id": 5,
+      "class_name": "bus",
+      "confidence": 0.84375
+    },
+    {
+      "box_xyxy": [
+        0.421875,
+        549.28125,
+        57.796875,
+        868.21875
+      ],
+      "class_id": 0,
+      "class_name": "person",
+      "confidence": 0.435791015625
+    }
+  ],
+  "experiment": "TensorRT FP16 annotated-image demo",
+  "gpu": "NVIDIA L4",
+  "image": "bus.jpg",
+  "image_size": 640,
+  "source_shape_hwc": [
+    1080,
+    810,
+    3
+  ],
+  "stage_speed_ms": {
+    "inference": 1.0979269999999985,
+    "postprocess": 26.05678300000136,
+    "preprocess": 54.402436000000165
+  },
+  "timestamp_utc": "2026-08-22T13:50:16.333855+00:00"
+}

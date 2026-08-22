@@ -85,3 +85,30 @@ End-to-end measurements additionally include image decode, preprocessing,
 postprocessing, visualization, and normal CPU/runtime variation. A
 single-image correctness comparison does not replace dataset-wide quality
 evaluation such as mAP.
+
+## TensorRT experiments
+
+Milestone 7 separates two timing scopes.
+
+The model-only benchmark uses CUDA events on each backend's actual execution
+stream. It compares PyTorch FP32, PyTorch FP16, and TensorRT FP16 raw forward
+passes. Model loading, TensorRT deserialization, preprocessing, NMS,
+visualization, and file output are excluded. TensorRT uses one reusable engine,
+execution context, non-default CUDA stream, and output buffer.
+
+The complete-pipeline benchmark uses a synchronized CPU wall clock because it
+contains both CPU and GPU work. Its boundary includes image decode,
+preprocessing, host-to-device transfer, model execution, confidence filtering,
+NMS, and in-memory visualization. Model/engine loading and output-file writing
+remain excluded.
+
+Both experiments run 30 warm-ups and 200 measured iterations. Backend order is
+rotated through all permutations so each implementation appears in every
+position. The model-only benchmark synchronizes before each operation and
+waits on the ending CUDA event. The complete-pipeline benchmark synchronizes
+before starting and after the returned application output is ready.
+
+TensorRT correctness is checked at two levels. FP32 requires strict raw-output
+all-close. FP16 requires finite raw values and matching class scores, while a
+separate post-NMS gate matches final detections by class and IoU. This prevents
+discarded raw candidates from incorrectly failing the application-level gate.
